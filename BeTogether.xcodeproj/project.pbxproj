@@ -1,0 +1,447 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B001 /* BeTogetherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001; };
+		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002; };
+		B003 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003; };
+		B004 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A004; };
+		B005 /* PhoneInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A005; };
+		B006 /* PhoneVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A006; };
+		B007 /* TermsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A007; };
+		B008 /* EmailInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A008; };
+		B009 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A009; };
+		B010 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A010; };
+		B011 /* UserSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A011; };
+		B012 /* BTButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012; };
+		B013 /* BTTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013; };
+		B014 /* BTCheckBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014; };
+		B015 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015; };
+		B016 /* Font+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016; };
+		B017 /* MBTIManualInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A017; };
+		B018 /* MBTITestIntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A018; };
+		B019 /* MBTITestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A019; };
+		B020 /* MBTIResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A020; };
+		B021 /* PersonalityQAIntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A021; };
+		B022 /* PersonalityQAView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A022; };
+		B023 /* ContactBlockingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A023; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A001 /* BeTogetherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeTogetherApp.swift; sourceTree = "<group>"; };
+		A002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A003 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		A004 /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
+		A005 /* PhoneInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneInputView.swift; sourceTree = "<group>"; };
+		A006 /* PhoneVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneVerificationView.swift; sourceTree = "<group>"; };
+		A007 /* TermsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsView.swift; sourceTree = "<group>"; };
+		A008 /* EmailInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailInputView.swift; sourceTree = "<group>"; };
+		A009 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
+		A010 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		A011 /* UserSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSessionViewModel.swift; sourceTree = "<group>"; };
+		A012 /* BTButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTButton.swift; sourceTree = "<group>"; };
+		A013 /* BTTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTTextField.swift; sourceTree = "<group>"; };
+		A014 /* BTCheckBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTCheckBox.swift; sourceTree = "<group>"; };
+		A015 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
+		A016 /* Font+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Font+Extensions.swift"; sourceTree = "<group>"; };
+		A017 /* MBTIManualInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MBTIManualInputView.swift; sourceTree = "<group>"; };
+		A018 /* MBTITestIntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MBTITestIntroView.swift; sourceTree = "<group>"; };
+		A019 /* MBTITestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MBTITestView.swift; sourceTree = "<group>"; };
+		A020 /* MBTIResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MBTIResultView.swift; sourceTree = "<group>"; };
+		A021 /* PersonalityQAIntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalityQAIntroView.swift; sourceTree = "<group>"; };
+		A022 /* PersonalityQAView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalityQAView.swift; sourceTree = "<group>"; };
+		A023 /* ContactBlockingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactBlockingView.swift; sourceTree = "<group>"; };
+		P001 /* BeTogether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeTogether.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F001 = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		G001 = {
+			isa = PBXGroup;
+			children = (
+				G002 /* BeTogether */,
+				G007 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		G002 /* BeTogether */ = {
+			isa = PBXGroup;
+			children = (
+				A001 /* BeTogetherApp.swift */,
+				G003 /* Views */,
+				G004 /* ViewModels */,
+				G005 /* Components */,
+				G006 /* Extensions */,
+			);
+			path = BeTogether;
+			sourceTree = "<group>";
+		};
+		G003 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A002 /* ContentView.swift */,
+				A003 /* SplashView.swift */,
+				A004 /* LandingView.swift */,
+				A005 /* PhoneInputView.swift */,
+				A006 /* PhoneVerificationView.swift */,
+				A007 /* TermsView.swift */,
+				A008 /* EmailInputView.swift */,
+				A009 /* ProfileSetupView.swift */,
+				A010 /* HomeView.swift */,
+				A017 /* MBTIManualInputView.swift */,
+				A018 /* MBTITestIntroView.swift */,
+				A019 /* MBTITestView.swift */,
+				A020 /* MBTIResultView.swift */,
+				A021 /* PersonalityQAIntroView.swift */,
+				A022 /* PersonalityQAView.swift */,
+				A023 /* ContactBlockingView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		G004 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				A011 /* UserSessionViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		G005 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A012 /* BTButton.swift */,
+				A013 /* BTTextField.swift */,
+				A014 /* BTCheckBox.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		G006 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				A015 /* Color+Extensions.swift */,
+				A016 /* Font+Extensions.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		G007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				P001 /* BeTogether.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		T001 /* BeTogether */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C003;
+			buildPhases = (
+				S001 /* Sources */,
+				F001 /* Frameworks */,
+				R001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BeTogether;
+			productName = BeTogether;
+			productReference = P001 /* BeTogether.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		PR001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					T001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = C001;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = G001;
+			productRefGroup = G007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				T001 /* BeTogether */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R001 = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		S001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B001 /* BeTogetherApp.swift in Sources */,
+				B002 /* ContentView.swift in Sources */,
+				B003 /* SplashView.swift in Sources */,
+				B004 /* LandingView.swift in Sources */,
+				B005 /* PhoneInputView.swift in Sources */,
+				B006 /* PhoneVerificationView.swift in Sources */,
+				B007 /* TermsView.swift in Sources */,
+				B008 /* EmailInputView.swift in Sources */,
+				B009 /* ProfileSetupView.swift in Sources */,
+				B010 /* HomeView.swift in Sources */,
+				B011 /* UserSessionViewModel.swift in Sources */,
+				B012 /* BTButton.swift in Sources */,
+				B013 /* BTTextField.swift in Sources */,
+				B014 /* BTCheckBox.swift in Sources */,
+				B015 /* Color+Extensions.swift in Sources */,
+				B016 /* Font+Extensions.swift in Sources */,
+				B017 /* MBTIManualInputView.swift in Sources */,
+				B018 /* MBTITestIntroView.swift in Sources */,
+				B019 /* MBTITestView.swift in Sources */,
+				B020 /* MBTIResultView.swift in Sources */,
+				B021 /* PersonalityQAIntroView.swift in Sources */,
+				B022 /* PersonalityQAView.swift in Sources */,
+				B023 /* ContactBlockingView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		BC001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BC002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BC003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.betogether.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BC004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.betogether.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C001 /* Build configuration list for PBXProject "BeTogether" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC001 /* Debug */,
+				BC002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C003 /* Build configuration list for PBXNativeTarget "BeTogether" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BC003 /* Debug */,
+				BC004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = PR001 /* Project object */;
+}
