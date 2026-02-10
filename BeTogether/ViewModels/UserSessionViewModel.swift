@@ -35,8 +35,14 @@ class UserSessionViewModel: ObservableObject {
         case personalityQAIntro // New step
         case personalityQA      // New step
         case contactBlocking    // New step
+        case photoUpload        // Phase 5
+        case approvalWaiting    // Phase 5
         case completed
     }
+    
+    // Approval Status
+    @Published var isApproved: Bool = false
+    @Published var approvalRejectionReason: String? = nil
     
     func advanceToNextStep() {
         switch currentOnboardingStep {
@@ -69,13 +75,42 @@ class UserSessionViewModel: ObservableObject {
         case .personalityQA:
             currentOnboardingStep = .contactBlocking
         case .contactBlocking:
-            isOnboardingComplete = true
-            isLoggedIn = true
-            currentOnboardingStep = .completed
+            currentOnboardingStep = .photoUpload
+        case .photoUpload:
+            currentOnboardingStep = .approvalWaiting
+            startMockApprovalProcess()
+        case .approvalWaiting:
+            if isApproved {
+                isOnboardingComplete = true
+                isLoggedIn = true
+                currentOnboardingStep = .completed
+            } else {
+                // Keep waiting or handle rejection handled by view
+            }
         case .completed:
             break
         }
     }
+    
+    // Mock Approval Process
+    func startMockApprovalProcess() {
+        // Reset status
+        isApproved = false
+        approvalRejectionReason = nil
+        
+        // Randomly approve or reject after 3 seconds for demo
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            // 70% chance of approval for demo purposes
+            let random = Int.random(in: 1...10)
+            if random > 3 {
+                self.isApproved = true
+            } else {
+                self.isApproved = false
+                self.approvalRejectionReason = "Face not clearly visible. Please upload clear headshots."
+            }
+        }
+    }
+
     
     // Explicit jump for "Don't know my MBTI"
     func startMBTITest() {
