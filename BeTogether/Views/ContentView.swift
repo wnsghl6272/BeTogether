@@ -50,6 +50,10 @@ struct ContentView: View {
                             PersonalityQAView()
                         case .contactBlocking:
                             ContactBlockingView()
+                        case .photoUpload:
+                            PhotoUploadView()
+                        case .approvalWaiting:
+                            ApprovalWaitingView()
                         case .completed:
                             HomeView()
                         }
