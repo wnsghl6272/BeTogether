@@ -19,46 +19,11 @@ struct ContentView: View {
                     }
             } else {
                 if userSession.isLoggedIn {
-                    HomeView()
+                    MainTabView()
                         .transition(.opacity)
                 } else {
-                    Group {
-                        switch userSession.currentOnboardingStep {
-                        case .landing:
-                            LandingView()
-                        case .phoneInput:
-                            PhoneInputView()
-                        case .verification:
-                            PhoneVerificationView()
-                        case .terms:
-                            TermsView()
-                        case .emailInput:
-                            EmailInputView()
-                        case .profileSetup:
-                            ProfileSetupView()
-                        case .mbtiManualInput:
-                            MBTIManualInputView()
-                        case .mbtiTestIntro:
-                            MBTITestIntroView()
-                        case .mbtiTest:
-                            MBTITestView()
-                        case .mbtiResult:
-                            MBTIResultView()
-                        case .personalityQAIntro:
-                            PersonalityQAIntroView()
-                        case .personalityQA:
-                            PersonalityQAView()
-                        case .contactBlocking:
-                            ContactBlockingView()
-                        case .photoUpload:
-                            PhotoUploadView()
-                        case .approvalWaiting:
-                            ApprovalWaitingView()
-                        case .completed:
-                            HomeView()
-                        }
-                    }
-                    .transition(.opacity)
+                    onboardingStepView
+                        .transition(.opacity)
                 }
             }
         }
@@ -66,6 +31,45 @@ struct ContentView: View {
         .animation(.default, value: userSession.isLoggedIn)
         .animation(.default, value: showSplash)
     }
+    
+    @ViewBuilder
+    private var onboardingStepView: some View {
+        switch userSession.currentOnboardingStep {
+        case .landing:
+            LandingView()
+        case .phoneInput:
+            PhoneInputView()
+        case .verification:
+            PhoneVerificationView()
+        case .terms:
+            TermsView()
+        case .emailInput:
+            EmailInputView()
+        case .profileSetup:
+            ProfileSetupView()
+        case .mbtiManualInput:
+            MBTIManualInputView()
+        case .mbtiTestIntro:
+            MBTITestIntroView()
+        case .mbtiTest:
+            MBTITestView()
+        case .mbtiResult:
+            MBTIResultView()
+        case .personalityQAIntro:
+            PersonalityQAIntroView()
+        case .personalityQA:
+            PersonalityQAView()
+        case .contactBlocking:
+            ContactBlockingView()
+        case .photoUpload:
+            PhotoUploadView()
+        case .approvalWaiting:
+            ApprovalWaitingView()
+        case .completed:
+            MainTabView()
+        }
+    }
+
 }
 
 #Preview {

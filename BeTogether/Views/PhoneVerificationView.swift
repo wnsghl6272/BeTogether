@@ -27,7 +27,7 @@ struct PhoneVerificationView: View {
                 
                 BTTextField(placeholder: "000000", text: $otpCode, keyboardType: .numberPad)
                     .padding(.horizontal, 40)
-                    .onChange(of: otpCode) { newValue in
+                    .onChange(of: otpCode) { oldValue, newValue in
                         if newValue.count > 6 {
                             otpCode = String(newValue.prefix(6))
                         }

@@ -99,7 +99,7 @@ class UserSessionViewModel: ObservableObject {
         approvalRejectionReason = nil
         
         // Randomly approve or reject after 3 seconds for demo
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             // 70% chance of approval for demo purposes
             let random = Int.random(in: 1...10)
             if random > 3 {
