@@ -2,31 +2,59 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    let users: [User] = User.mockUsers
     
     var body: some View {
-        ZStack {
-            Color.btIvory.edgesIgnoringSafeArea(.all)
-            
-            VStack {
-                Text("Welcome to BeTogether")
-                    .font(.btHeader)
+        VStack(spacing: 0) {
+            // Top Navigation
+            HStack {
+                // Logo / Brand (Selected State)
+                Text("BeTogether")
+                    .font(.custom("ArialRoundedMTBold", size: 24))
                     .foregroundColor(.btTeal)
+                    .shadow(color: .btTeal.opacity(0.3), radius: 2, x: 0, y: 1)
                 
-                Text("You are all set!")
-                    .font(.btSubheader)
-                    .foregroundColor(.gray)
+                Spacer()
                 
-                // Temporary logout for testing
-                Button(action: {
-                    userSession.isLoggedIn = false
-                    userSession.isOnboardingComplete = false
-                    userSession.currentOnboardingStep = .landing
-                }) {
-                    Text("Logout (Debug)")
-                        .foregroundColor(.red)
+                // Center Menu (Dimmed)
+                HStack(spacing: 20) {
+                    Text("Discover")
+                        .foregroundColor(.gray.opacity(0.6))
+                        .font(.system(size: 16, weight: .medium))
+                    Text("Gathering")
+                        .foregroundColor(.gray.opacity(0.6))
+                        .font(.system(size: 16, weight: .medium))
                 }
-                .padding(.top, 50)
+                
+                Spacer()
+                
+                // Settings Icon
+                Button(action: {}) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 20))
+                        .foregroundColor(.gray)
+                }
             }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+            .background(Color.btIvory)
+            
+            // Photo Card List
+            ScrollView {
+                LazyVStack(spacing: 20) {
+                    ForEach(users) { user in
+                        PhotoCardView(user: user)
+                            .padding(.horizontal)
+                    }
+                }
+                .padding(.vertical)
+            }
+            .background(Color.btIvory)
         }
     }
+}
+
+#Preview {
+    HomeView()
+        .environmentObject(UserSessionViewModel())
 }

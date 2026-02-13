@@ -32,6 +32,10 @@
 		B023 /* ContactBlockingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A023; };
 		B024 /* PhotoUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A024; };
 		B025 /* ApprovalWaitingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A025; };
+		B026 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = A026; };
+		B027 /* PhotoCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A027; };
+		B028 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A028; };
+		B029 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A029; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +64,10 @@
 		A023 /* ContactBlockingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactBlockingView.swift; sourceTree = "<group>"; };
 		A024 /* PhotoUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoUploadView.swift; sourceTree = "<group>"; };
 		A025 /* ApprovalWaitingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalWaitingView.swift; sourceTree = "<group>"; };
+		A026 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		A027 /* PhotoCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCardView.swift; sourceTree = "<group>"; };
+		A028 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		A029 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		P001 /* BeTogether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeTogether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -85,9 +93,11 @@
 		G002 /* BeTogether */ = {
 			isa = PBXGroup;
 			children = (
+				A029 /* Assets.xcassets */,
 				A001 /* BeTogetherApp.swift */,
 				G003 /* Views */,
 				G004 /* ViewModels */,
+				G008 /* Models */,
 				G005 /* Components */,
 				G006 /* Extensions */,
 			);
@@ -115,6 +125,8 @@
 				A023 /* ContactBlockingView.swift */,
 				A024 /* PhotoUploadView.swift */,
 				A025 /* ApprovalWaitingView.swift */,
+				A027 /* PhotoCardView.swift */,
+				A028 /* MainTabView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -144,6 +156,14 @@
 				A016 /* Font+Extensions.swift */,
 			);
 			path = Extensions;
+			sourceTree = "<group>";
+		};
+		G008 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A026 /* User.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		G007 /* Products */ = {
@@ -212,6 +232,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B029 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,6 +268,9 @@
 				B023 /* ContactBlockingView.swift in Sources */,
 				B024 /* PhotoUploadView.swift in Sources */,
 				B025 /* ApprovalWaitingView.swift in Sources */,
+				B026 /* User.swift in Sources */,
+				B027 /* PhotoCardView.swift in Sources */,
+				B028 /* MainTabView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
