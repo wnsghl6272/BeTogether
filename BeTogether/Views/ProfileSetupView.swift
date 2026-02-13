@@ -9,9 +9,11 @@ struct ProfileSetupView: View {
         case gender
         case occupation
         case height
-        case university // New
-        case drinking   // New
-        case smoking    // New
+        case university
+        case drinking
+        case smoking
+        case oneLineIntro // New
+        case selfIntro    // New
     }
     
     @State private var curStep: ProfileStep = .birthday
@@ -22,9 +24,11 @@ struct ProfileSetupView: View {
     @State private var gender: String = "" // "Male" or "Female"
     @State private var occupation: String = ""
     @State private var height: String = ""
-    @State private var university: String = ""     // New
-    @State private var drinking: String = ""       // New
-    @State private var smoking: String = ""        // New
+    @State private var university: String = ""
+    @State private var drinking: String = ""
+    @State private var smoking: String = ""
+    @State private var oneLineIntro: String = ""   // New
+    @State private var selfIntro: String = ""      // New
     
     // Validation
     var isAgeValid: Bool {
@@ -58,6 +62,10 @@ struct ProfileSetupView: View {
                     drinkingStep
                 case .smoking:
                     smokingStep
+                case .oneLineIntro:
+                    oneLineIntroStep
+                case .selfIntro:
+                    selfIntroStep
                 }
                 
                 Spacer()
@@ -246,7 +254,7 @@ struct ProfileSetupView: View {
             
             BTButton(title: "Next", action: {
                 userSession.smoking = smoking
-                userSession.advanceToNextStep() // Proceed to MBTI
+                curStep = .oneLineIntro
             }, isDisabled: smoking.isEmpty)
             .padding(.horizontal, 40)
         }
@@ -266,6 +274,47 @@ struct ProfileSetupView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(Color.btTeal, lineWidth: 2)
                 )
+        }
+    }
+    
+    var oneLineIntroStep: some View {
+        VStack(spacing: 30) {
+            Text("Describe yourself in one line")
+                .font(.btHeader)
+                .foregroundColor(.btTeal)
+                .multilineTextAlignment(.center)
+            
+            BTTextField(placeholder: "e.g. A coffee-loving developer", text: $oneLineIntro)
+                .padding(.horizontal, 40)
+            
+            BTButton(title: "Next", action: {
+                userSession.oneLineIntro = oneLineIntro
+                curStep = .selfIntro
+            }, isDisabled: oneLineIntro.isEmpty)
+            .padding(.horizontal, 40)
+        }
+    }
+    
+    var selfIntroStep: some View {
+        VStack(spacing: 30) {
+            Text("Introduce yourself")
+                .font(.btHeader)
+                .foregroundColor(.btTeal)
+                .multilineTextAlignment(.center)
+            
+            TextEditor(text: $selfIntro)
+                .frame(height: 150)
+                .padding()
+                .background(Color.white)
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                .padding(.horizontal, 40)
+            
+            BTButton(title: "Complete Profile", action: {
+                userSession.selfIntro = selfIntro
+                userSession.advanceToNextStep() // Proceed to MBTI
+            }, isDisabled: selfIntro.isEmpty)
+            .padding(.horizontal, 40)
         }
     }
 }

@@ -1,3 +1,29 @@
 .DS_Store
 UserInterfaceState.xcuserstate
 xcuserdata/
+
+# Security & Sensitive Data
+Secrets.swift
+Secrets.plist
+GoogleService-Info.plist
+firebase_options.dart
+*.apns
+.env
+.env.local
+
+# Dependency Directories
+Pods/
+Carthage/
+.build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/screenshots
+fastlane/test_output
+
+# OS & Editor
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/

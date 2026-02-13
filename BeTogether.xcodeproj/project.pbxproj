@@ -7,38 +7,44 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B001 /* BeTogetherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001; };
-		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002; };
-		B003 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003; };
-		B004 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A004; };
-		B005 /* PhoneInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A005; };
-		B006 /* PhoneVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A006; };
-		B007 /* TermsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A007; };
-		B008 /* EmailInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A008; };
-		B009 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A009; };
-		B010 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A010; };
-		B011 /* UserSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A011; };
-		B012 /* BTButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012; };
-		B013 /* BTTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013; };
-		B014 /* BTCheckBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014; };
-		B015 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015; };
-		B016 /* Font+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016; };
-		B017 /* MBTIManualInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A017; };
-		B018 /* MBTITestIntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A018; };
-		B019 /* MBTITestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A019; };
-		B020 /* MBTIResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A020; };
-		B021 /* PersonalityQAIntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A021; };
-		B022 /* PersonalityQAView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A022; };
-		B023 /* ContactBlockingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A023; };
-		B024 /* PhotoUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A024; };
-		B025 /* ApprovalWaitingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A025; };
-		B026 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = A026; };
-		B027 /* PhotoCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A027; };
-		B028 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A028; };
-		B029 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A029; };
+		69435F432F3F3593002A6F5D /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F402F3F3593002A6F5D /* LocationPermissionView.swift */; };
+		69435F442F3F3593002A6F5D /* MatchingPreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */; };
+		69435F452F3F3593002A6F5D /* NotificationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */; };
+		B001 /* BeTogetherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001 /* BeTogetherApp.swift */; };
+		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002 /* ContentView.swift */; };
+		B003 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003 /* SplashView.swift */; };
+		B004 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A004 /* LandingView.swift */; };
+		B005 /* PhoneInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A005 /* PhoneInputView.swift */; };
+		B006 /* PhoneVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A006 /* PhoneVerificationView.swift */; };
+		B007 /* TermsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A007 /* TermsView.swift */; };
+		B008 /* EmailInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A008 /* EmailInputView.swift */; };
+		B009 /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A009 /* ProfileSetupView.swift */; };
+		B010 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A010 /* HomeView.swift */; };
+		B011 /* UserSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A011 /* UserSessionViewModel.swift */; };
+		B012 /* BTButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012 /* BTButton.swift */; };
+		B013 /* BTTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013 /* BTTextField.swift */; };
+		B014 /* BTCheckBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* BTCheckBox.swift */; };
+		B015 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* Color+Extensions.swift */; };
+		B016 /* Font+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A016 /* Font+Extensions.swift */; };
+		B017 /* MBTIManualInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A017 /* MBTIManualInputView.swift */; };
+		B018 /* MBTITestIntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A018 /* MBTITestIntroView.swift */; };
+		B019 /* MBTITestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A019 /* MBTITestView.swift */; };
+		B020 /* MBTIResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A020 /* MBTIResultView.swift */; };
+		B021 /* PersonalityQAIntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A021 /* PersonalityQAIntroView.swift */; };
+		B022 /* PersonalityQAView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A022 /* PersonalityQAView.swift */; };
+		B023 /* ContactBlockingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A023 /* ContactBlockingView.swift */; };
+		B024 /* PhotoUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A024 /* PhotoUploadView.swift */; };
+		B025 /* ApprovalWaitingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A025 /* ApprovalWaitingView.swift */; };
+		B026 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = A026 /* User.swift */; };
+		B027 /* PhotoCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A027 /* PhotoCardView.swift */; };
+		B028 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A028 /* MainTabView.swift */; };
+		B029 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A029 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		69435F402F3F3593002A6F5D /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
+		69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchingPreferenceView.swift; sourceTree = "<group>"; };
+		69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionView.swift; sourceTree = "<group>"; };
 		A001 /* BeTogetherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeTogetherApp.swift; sourceTree = "<group>"; };
 		A002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A003 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
@@ -72,7 +78,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		F001 = {
+		F001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -108,6 +114,9 @@
 			isa = PBXGroup;
 			children = (
 				A002 /* ContentView.swift */,
+				69435F402F3F3593002A6F5D /* LocationPermissionView.swift */,
+				69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */,
+				69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */,
 				A003 /* SplashView.swift */,
 				A004 /* LandingView.swift */,
 				A005 /* PhoneInputView.swift */,
@@ -158,14 +167,6 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
-		G008 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				A026 /* User.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
 		G007 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -174,12 +175,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		G008 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A026 /* User.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		T001 /* BeTogether */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C003;
+			buildConfigurationList = C003 /* Build configuration list for PBXNativeTarget "BeTogether" */;
 			buildPhases = (
 				S001 /* Sources */,
 				F001 /* Frameworks */,
@@ -209,7 +218,7 @@
 					};
 				};
 			};
-			buildConfigurationList = C001;
+			buildConfigurationList = C001 /* Build configuration list for PBXProject "BeTogether" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -228,7 +237,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		R001 = {
+		R001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -257,6 +266,9 @@
 				B012 /* BTButton.swift in Sources */,
 				B013 /* BTTextField.swift in Sources */,
 				B014 /* BTCheckBox.swift in Sources */,
+				69435F432F3F3593002A6F5D /* LocationPermissionView.swift in Sources */,
+				69435F442F3F3593002A6F5D /* MatchingPreferenceView.swift in Sources */,
+				69435F452F3F3593002A6F5D /* NotificationPermissionView.swift in Sources */,
 				B015 /* Color+Extensions.swift in Sources */,
 				B016 /* Font+Extensions.swift in Sources */,
 				B017 /* MBTIManualInputView.swift in Sources */,
