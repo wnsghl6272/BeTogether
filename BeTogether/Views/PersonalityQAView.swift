@@ -14,29 +14,84 @@ struct PersonalityQAView: View {
     }
     
     let questions: [QAQuestion] = [
+        // 1. Skinship
         QAQuestion(
             category: "Skinship",
             icon: "💕",
-            question: "How do you feel about public displays of affection?",
-            options: ["Love it! Everywhere provided.", "Fine with holding hands.", "Prefer to keep it private."]
+            question: "How fast do you progress with skinship?",
+            options: ["Slowly, after building trust", "Naturally, as we feel it", "Quickly, if I like them", "Ideally on the first date"]
         ),
+        QAQuestion(
+            category: "Skinship",
+            icon: "💋",
+            question: "What are your thoughts on PDA?",
+            options: ["I love showing affection anywhere", "Holding hands is fine", "Only in private places", "I'm shy about public affection"]
+        ),
+        QAQuestion(
+            category: "Skinship",
+            icon: "🤝",
+            question: "How important is physical touch to you?",
+            options: ["Essential for connection", "Important but not everything", "Nice to have", "Not a priority"]
+        ),
+        
+        // 2. Drinking Style
         QAQuestion(
             category: "Drinking",
             icon: "🍺",
-            question: "What is your drinking style?",
-            options: ["Enjoy the atmosphere.", "Drink until I drop!", "Prefer non-alcoholic fun."]
+            question: "How often do you drink?",
+            options: ["Never / Rarely", "Once or twice a week", "Enjoying often with meals", "Party animal!"]
+        ),
+        QAQuestion(
+            category: "Drinking",
+            icon: "🥂",
+            question: "What's your preferred drinking atmosphere?",
+            options: ["Quiet talks at an Izakaya", "Lively places with music", "Energetic Clubs/Parties", "Sensible drinking at home"]
+        ),
+        QAQuestion(
+            category: "Drinking",
+            icon: "🥴",
+            question: "What's your habit when drunk?",
+            options: ["I get sleepy/quiet", "I become more talkative", "I call everyone", "I become super energetic"]
+        ),
+        
+        // 3. Dating Style
+        QAQuestion(
+            category: "Dating",
+            icon: "📅",
+            question: "Are you a planner or impulsive?",
+            options: ["Detailed planner (J)", "Rough plan is enough", "Go with the flow (P)", "Completely spontaneous"]
         ),
         QAQuestion(
             category: "Dating",
-            icon: "💑",
-            question: "How often do you prefer to contact your partner?",
-            options: ["Every hour!", "Morning & Night.", "Just for making plans.", "When I have time."]
+            icon: "📱",
+            question: "How important is contact frequency?",
+            options: ["All day, every detail", "Morning, Lunch, Night", "Once a day is enough", "Only for setting dates"]
         ),
+        QAQuestion(
+            category: "Dating",
+            icon: "🏠",
+            question: "Home date vs Outdoor date?",
+            options: ["Cozy home date with Netflix", "Exploring cafes/restaurants", "Active outdoor activities", "Mix of both is best"]
+        ),
+        
+        // 4. Spending Habits
         QAQuestion(
             category: "Spending",
             icon: "💸",
-            question: "What's your stance on dating expenses?",
-            options: ["I'll pay for everything.", "Let's go 50/50.", "Take turns paying.", "Whoever asks pays."]
+            question: "How do you split date costs?",
+            options: ["I prefer to pay", "Let's split 50/50", "Take turns paying", "Whoever suggests pays"]
+        ),
+        QAQuestion(
+            category: "Spending",
+            icon: "💰",
+            question: "Are you a saver or a spender?",
+            options: ["Strict saver for future", "Balance saving/spending", "Enjoy the present moment", "Love treating myself"]
+        ),
+        QAQuestion(
+            category: "Spending",
+            icon: "👜",
+            question: "Do you care about luxury brands?",
+            options: ["Very important", "Nice to have quality items", "Not interested at all", "Prefer unique/vintage"]
         )
     ]
     

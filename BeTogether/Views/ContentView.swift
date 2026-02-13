@@ -41,6 +41,10 @@ struct ContentView: View {
             PhoneInputView()
         case .verification:
             PhoneVerificationView()
+        case .notificationPermission:
+            NotificationPermissionView()
+        case .locationPermission:
+            LocationPermissionView()
         case .terms:
             TermsView()
         case .emailInput:
@@ -59,6 +63,8 @@ struct ContentView: View {
             PersonalityQAIntroView()
         case .personalityQA:
             PersonalityQAView()
+        case .matchingPreference:
+            MatchingPreferenceView()
         case .contactBlocking:
             ContactBlockingView()
         case .photoUpload:
