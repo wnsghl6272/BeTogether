@@ -16,15 +16,15 @@ struct HomeView: View {
                 
                 Spacer()
                 
-                // Center Menu (Dimmed)
-                HStack(spacing: 20) {
-                    Text("Discover")
-                        .foregroundColor(.gray.opacity(0.6))
-                        .font(.system(size: 16, weight: .medium))
-                    Text("Gathering")
-                        .foregroundColor(.gray.opacity(0.6))
-                        .font(.system(size: 16, weight: .medium))
-                }
+                // Center Menu (Dimmed) - REMOVED
+                // HStack(spacing: 20) {
+                //    Text("Discover")
+                //        .foregroundColor(.gray.opacity(0.6))
+                //        .font(.system(size: 16, weight: .medium))
+                //    Text("Gathering")
+                //        .foregroundColor(.gray.opacity(0.6))
+                //        .font(.system(size: 16, weight: .medium))
+                // }
                 
                 Spacer()
                 
