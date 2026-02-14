@@ -39,6 +39,10 @@
 		B027 /* PhotoCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A027 /* PhotoCardView.swift */; };
 		B028 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A028 /* MainTabView.swift */; };
 		B029 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A029 /* Assets.xcassets */; };
+		B030 /* MatchesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A030 /* MatchesView.swift */; };
+		B031 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A031 /* ExploreView.swift */; };
+		B032 /* NotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A032 /* NotificationView.swift */; };
+		B033 /* ProfileMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A033 /* ProfileMainView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,6 +78,10 @@
 		A027 /* PhotoCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCardView.swift; sourceTree = "<group>"; };
 		A028 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		A029 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A030 /* MatchesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchesView.swift; sourceTree = "<group>"; };
+		A031 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		A032 /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationView.swift; sourceTree = "<group>"; };
+		A033 /* ProfileMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileMainView.swift; sourceTree = "<group>"; };
 		P001 /* BeTogether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeTogether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -136,6 +144,10 @@
 				A025 /* ApprovalWaitingView.swift */,
 				A027 /* PhotoCardView.swift */,
 				A028 /* MainTabView.swift */,
+				A030 /* MatchesView.swift */,
+				A031 /* ExploreView.swift */,
+				A032 /* NotificationView.swift */,
+				A033 /* ProfileMainView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -283,6 +295,10 @@
 				B026 /* User.swift in Sources */,
 				B027 /* PhotoCardView.swift in Sources */,
 				B028 /* MainTabView.swift in Sources */,
+				B030 /* MatchesView.swift in Sources */,
+				B031 /* ExploreView.swift in Sources */,
+				B032 /* NotificationView.swift in Sources */,
+				B033 /* ProfileMainView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -14,64 +14,38 @@ struct MainTabView: View {
                 }
                 .tag(0)
             
-            // Tab 2: Similar (New)
-            VStack {
-                Text("Similar Friends")
-                    .font(.btHeader)
-                Text("Find people with similar tendencies.")
-            }
-            .tabItem {
-                // "Similar" icon - using sparkles/stack/rectangle
-                Image(systemName: "sparkles.rectangle.stack.fill") 
-                Text("Similar")
-            }
-            .tag(1)
+            // Tab 2: Matches & Chat
+            MatchesView()
+                .tabItem {
+                    Image(systemName: "heart.fill")
+                    Text("Matches")
+                }
+                .tag(1)
             
-            // Tab 3: Friends (Was Block)
-            VStack {
-                Text("Friends")
-                    .font(.btHeader)
-                Text("Your connected friends list.")
-            }
-            .tabItem {
-                Image(systemName: "person.2.fill")
-                Text("Friends")
-            }
-            .tag(2)
+            // Tab 3: Explore
+            ExploreView()
+                .tabItem {
+                    Image(systemName: "safari.fill")
+                    Text("Explore")
+                }
+                .tag(2)
             
-            // Tab 4: Chat
-            VStack {
-                Text("Chats")
-                    .font(.btHeader)
-                Text("No messages yet.")
-            }
-            .tabItem {
-                Image(systemName: "message.fill")
-                Text("Chat")
-            }
-            .tag(3)
+            // Tab 4: Notifications
+            NotificationView()
+                .tabItem {
+                    Image(systemName: "bell.fill")
+                    Text("Alerts")
+                }
+                .tag(3)
+                .badge(3) // Example badge
             
             // Tab 5: Profile
-            VStack {
-                Text("My Profile")
-                    .font(.btHeader)
-                Text("MBTI: \(userSession.mbtiResult)")
-                
-                Button("Logout") {
-                    userSession.isLoggedIn = false
-                    userSession.isOnboardingComplete = false
-                    userSession.currentOnboardingStep = .landing
+            ProfileMainView()
+                .tabItem {
+                    Image(systemName: "person.fill")
+                    Text("Profile")
                 }
-                .padding()
-                .background(Color.btTeal)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-            }
-            .tabItem {
-                Image(systemName: "person.fill")
-                Text("Profile")
-            }
-            .tag(4)
+                .tag(4)
         }
         .accentColor(.btTeal)
     }
