@@ -57,7 +57,7 @@ struct HomeView: View {
         switch index {
         case 0: return .fog      // First card: Fog Effect
         case 1: return .sparkle  // Second card: Sparkle Scroll
-        case 2: return .blur     // Third card: Blur Effect
+        case 2: return .popReveal // Third card: Pop Reveal (Gamified)
         case 3: return .curtain  // Fourth card: Curtain Effect
         case 4: return .door     // Fifth card: Door Effect
         default: return .none    // Others: Normal

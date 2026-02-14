@@ -7,6 +7,7 @@ enum CardEffect {
     case blur     // Tap to reveal (Blur measurement)
     case curtain  // Tap to reveal (Curtain opening)
     case door     // Tap to reveal (3D Door opening)
+    case popReveal // Gamified: Pop bubbles to reveal info
 }
 
 struct PhotoCardView: View {
@@ -14,12 +15,28 @@ struct PhotoCardView: View {
     var effect: CardEffect = .none
     @State private var isRevealed: Bool = false
     
+    // For Pop Reveal Effect
+    @State private var poppedBubbles: Set<Int> = [] // 0: Name, 1: Age, 2: Distance
+    
+    // For Enhanced Fog Effect
+    @State private var fogPoppedIndices: Set<Int> = [] // 0: Name, 1: Age, 2: MBTI, 3: Distance
+    
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Main Card Content
             mainCardContent
-                .blur(radius: (effect == .blur && !isRevealed) ? 20 : 0) // Blur Effect Logic
-                .animation(.easeInOut(duration: 2.5), value: isRevealed) // Slower blur transition
+                // Blur Logic:
+                // Fog: Blurred until all 4 fog bubbles popped.
+                // Blur: Blurred standard tap.
+                // PopReveal: Blurred until 3 bubbles popped.
+                .blur(radius:
+                        (effect == .fog && fogPoppedIndices.count < 4) ? 20 :
+                        (effect == .blur && !isRevealed && effect != .popReveal) ? 20 :
+                        (effect == .popReveal && poppedBubbles.count < 3) ? 15 : 0
+                )
+                .animation(.easeInOut(duration: 2.5), value: isRevealed)
+                .animation(.easeInOut(duration: 2.0), value: poppedBubbles.count)
+                .animation(.easeInOut(duration: 2.0), value: fogPoppedIndices.count)
                 .zIndex(0) // Ensure content is behind
             
             // Interaction Overlays
@@ -28,7 +45,6 @@ struct PhotoCardView: View {
                 case .fog:
                     if !isRevealed {
                         fogOverlay
-                            .transition(.opacity.animation(.easeInOut(duration: 2.0)))
                     }
                 case .curtain:
                     if !isRevealed {
@@ -41,6 +57,10 @@ struct PhotoCardView: View {
                     }
                 case .door:
                     doorOverlay // Keeps view for 3D animation
+                case .popReveal:
+                    if !isRevealed {
+                        popRevealOverlay
+                    }
                 default:
                     EmptyView()
                 }
@@ -50,8 +70,9 @@ struct PhotoCardView: View {
         .frame(height: 580)
         .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 8)
         .onTapGesture {
-            if effect == .fog || effect == .blur || effect == .curtain || effect == .door {
-                withAnimation(.easeInOut(duration: 2.5)) { // Global slow reveal
+            // General tap to reveal for simple effects
+            if effect == .blur || effect == .curtain || effect == .door {
+                withAnimation(.easeInOut(duration: 2.5)) { 
                     isRevealed = true
                 }
             }
@@ -171,28 +192,97 @@ struct PhotoCardView: View {
             }
             .padding(20)
             .padding(.bottom, 10)
+            .opacity(isRevealed ? 1 : 0)
+            .animation(.easeInOut(duration: 0.5), value: isRevealed) 
         }
     }
     
     // MARK: - Overlays
     
-    // 1. Fog Overlay
+    // 1. Fog Overlay (Updated with 4 Balloons)
     var fogOverlay: some View {
         ZStack {
             Color.white.opacity(0.4)
             VisualEffectBlur(blurStyle: .systemUltraThinMaterialLight)
             
             VStack {
-                Image(systemName: "hand.tap.fill")
-                    .font(.largeTitle)
-                    .foregroundColor(.white)
-                Text("Tap to Wipe Fog")
+                Text("Pop 4 Balloons!")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.gray)
+                    .padding(.top, 40)
+                Spacer()
+            }
+            
+            // Randomly placed balloons or structured? Let's do structured random-ish.
+            VStack(spacing: 20) {
+                HStack(spacing: 30) {
+                    fogBalloon(text: user.name, index: 0, color: .pink)
+                        .offset(y: 20)
+                    fogBalloon(text: "\(user.age)", index: 1, color: .orange)
+                        .offset(y: -10)
+                }
+                HStack(spacing: 40) {
+                    fogBalloon(text: user.mbti, index: 2, color: .purple)
+                        .offset(y: 10)
+                    fogBalloon(text: "\(user.distance)km", index: 3, color: .blue)
+                        .offset(y: 30)
+                }
             }
         }
         .cornerRadius(20)
-        .allowsHitTesting(false) // Let tap gesture pass through
+    }
+    
+    func fogBalloon(text: String, index: Int, color: Color) -> some View {
+        let isPopped = fogPoppedIndices.contains(index)
+        
+        return Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                _ = fogPoppedIndices.insert(index)
+            }
+            
+            if fogPoppedIndices.count == 4 {
+                // Wait for the last balloon's pop animation to be visible/enjoyed before revealing the photo
+                withAnimation(.easeInOut(duration: 2.5).delay(1.5)) {
+                    isRevealed = true
+                }
+            }
+        }) {
+            ZStack {
+                if isPopped {
+                    // Popped State: Text floats up and fades
+                    Text(text)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(color)
+                        .transition(AnyTransition.move(edge: .top).combined(with: .opacity))
+                } else {
+                    // Balloon State
+                    VStack(spacing: 0) {
+                        Circle()
+                            .fill(
+                                LinearGradient(gradient: Gradient(colors: [color.opacity(0.8), color]), startPoint: .topLeading, endPoint: .bottomTrailing)
+                            )
+                            .frame(width: 80, height: 90)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                            )
+                            .shadow(color: color.opacity(0.4), radius: 5, x: 0, y: 5)
+                        
+                        // String
+                        Path { path in
+                            path.move(to: CGPoint(x: 10, y: 0))
+                            path.addCurve(to: CGPoint(x: 10, y: 30), control1: CGPoint(x: 0, y: 15), control2: CGPoint(x: 20, y: 15))
+                        }
+                        .stroke(Color.gray, lineWidth: 1)
+                        .frame(width: 20, height: 30)
+                    }
+                    .transition(.scale)
+                }
+            }
+        }
+        .disabled(isPopped)
+        // Add floating animation if time permits, for now static is okay or simple appear.
     }
     
     // 2. Curtain Overlay
@@ -288,7 +378,81 @@ struct PhotoCardView: View {
         .allowsHitTesting(!isRevealed)
         .opacity(isRevealed ? 0 : 1)
         .animation(.easeInOut(duration: 2.5).delay(0.2), value: isRevealed) // Fade out slightly after opening starts? Or just simple fade?
-        // Actually, let's just rely on rotation. If we want it gone, we can fade it out too.
+    }
+
+    // 5. Pop Reveal Overlay
+    var popRevealOverlay: some View {
+        ZStack {
+            // Fog background
+            Color.white.opacity(0.3)
+            VisualEffectBlur(blurStyle: .systemUltraThinMaterialLight)
+            
+            VStack(spacing: 30) {
+                Text("Tap bubbles to find out!")
+                    .font(.headline)
+                    .foregroundColor(.gray)
+                    .padding(.top, 40)
+                
+                Spacer()
+                
+                // Bubble 1: Name
+                infoBubble(icon: "person.fill", text: user.name, index: 0)
+                
+                // Bubble 2: Age
+                infoBubble(icon: "calendar", text: "\(user.age) years old", index: 1)
+                
+                // Bubble 3: Distance
+                infoBubble(icon: "location.fill", text: "\(user.distance)km away", index: 2)
+                
+                Spacer()
+            }
+        }
+        .cornerRadius(20)
+    }
+    
+    func infoBubble(icon: String, text: String, index: Int) -> some View {
+        let isPopped = poppedBubbles.contains(index)
+        
+        return Button(action: {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                _ = poppedBubbles.insert(index)
+            }
+            
+            if poppedBubbles.count == 3 {
+                 // Wait for the last bubble's pop animation to be visible before revealing the photo
+                withAnimation(.easeInOut(duration: 2.5).delay(1.5)) {
+                    isRevealed = true
+                }
+            }
+        }) {
+            ZStack {
+                if isPopped {
+                    // Revealed State
+                    HStack {
+                        Image(systemName: icon)
+                        Text(text)
+                    }
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.btTeal)
+                    .padding()
+                    .background(Color.white.opacity(0.9))
+                    .cornerRadius(30)
+                    .transition(.scale.combined(with: .opacity))
+                } else {
+                    // Hidden State (Bubble)
+                    Circle()
+                        .fill(LinearGradient(gradient: Gradient(colors: [.btTeal, .blue]), startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 80, height: 80)
+                        .overlay(
+                            Image(systemName: "questionmark")
+                                .font(.largeTitle)
+                                .foregroundColor(.white)
+                        )
+                        .shadow(color: .btTeal.opacity(0.5), radius: 10, x: 0, y: 5)
+                }
+            }
+        }
+        .disabled(isPopped)
     }
 }
 
