@@ -8,9 +8,28 @@ struct LandingView: View {
             Color.btIvory.edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 20) {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        userSession.isLoggedIn = true
+                        userSession.isOnboardingComplete = true
+                        userSession.currentOnboardingStep = .completed
+                    }) {
+                        Text("Debug: Go to Home")
+                            .font(.caption)
+                            .padding(8)
+                            .background(Color.gray.opacity(0.3))
+                            .foregroundColor(.black)
+                            .cornerRadius(8)
+                    }
+                    .padding(.top, 50)
+                    .padding(.trailing, 20)
+                }
+                
                 Spacer()
                 
                 Image(systemName: "heart.fill")
+                // ... remaining content ...
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 80, height: 80)
