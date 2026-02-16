@@ -56,10 +56,15 @@ struct HomeView: View {
     func getEffect(for index: Int) -> CardEffect {
         switch index {
         case 0: return .fog      // First card: Fog Effect
-        case 1: return .sparkle  // Second card: Sparkle Scroll
-        case 2: return .popReveal // Third card: Pop Reveal (Gamified)
-        case 3: return .curtain  // Fourth card: Curtain Effect
-        case 4: return .door     // Fifth card: Door Effect
+        case 1: return .scratch  // Second card: Scratch Effect
+        case 2: return .heartPuzzle // Third card: Heart Puzzle Effect
+        case 3: return .neonSign // Fourth card: Neon Sign Effect
+        case 4: return .magnify // Fifth card: Magnifying Glass Effect
+        case 5: return .curtain // Sixth card: Curtain Reveal Effect
+        case 6: return .sparkleDust // Seventh card: Sparkle Dust Effect
+        case 7: return .gemPolish // Eighth card: Gem Polish Effect
+        case 8: return .envelopes // Ninth card: Message Note Effect
+        case 9: return .underwater // Tenth card: Underwater Effect
         default: return .none    // Others: Normal
         }
     }
