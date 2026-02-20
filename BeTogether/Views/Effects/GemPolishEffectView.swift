@@ -112,6 +112,9 @@ struct GemPolishEffectView<Content: View>: View {
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { _ in
+                            // Play sound continuously (without restarting if already playing)
+                            SoundManager.shared.playSound(named: "GemPolishEffectView", restart: false)
+                            
                             // Rubbing effect
                             if gemScratchAmount[index] < 1.0 {
                                 gemScratchAmount[index] += 0.05 // Increment polish
@@ -123,6 +126,8 @@ struct GemPolishEffectView<Content: View>: View {
                 )
                 // Fallback Tap for easier testing
                 .onTapGesture {
+                     SoundManager.shared.playSound(named: "GemPolishEffectView", restart: false)
+                     
                      if gemScratchAmount[index] < 1.0 {
                          gemScratchAmount[index] += 0.2
                          if gemScratchAmount[index] >= 1.0 {
@@ -136,6 +141,9 @@ struct GemPolishEffectView<Content: View>: View {
     }
     
     func handleGemPolished(index: Int) {
+        // Sound is played during interaction
+        // SoundManager.shared.playSound(named: "GemPolishEffectView")
+        
         withAnimation(.easeOut(duration: 0.8)) {
             _ = poppedIndices.insert(index)
         }

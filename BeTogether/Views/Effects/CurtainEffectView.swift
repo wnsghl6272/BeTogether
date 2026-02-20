@@ -112,6 +112,8 @@ struct CurtainEffectView<Content: View>: View {
     }
     
     func handleCurtainTap() {
+        SoundManager.shared.playSound(named: "CurtainEffectView")
+        
         let nextIndex = poppedIndices.count
         if nextIndex < 4 {
             withAnimation(.easeInOut(duration: 0.8)) {

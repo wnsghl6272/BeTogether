@@ -48,6 +48,9 @@ struct SparkleEffectView<Content: View>: View {
             .cornerRadius(20)
             .onChange(of: opacity) { oldValue, newValue in
                 if newValue <= 0.05 {
+                    if !isRevealed {
+                         // SoundManager.shared.playSound(named: "SparkleEffectView") // File missing
+                    }
                     isRevealed = true
                 } else {
                     isRevealed = false

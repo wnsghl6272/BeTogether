@@ -73,6 +73,8 @@ struct NeonSignEffectView<Content: View>: View {
         let isLit = poppedIndices.contains(index)
         
         return Button(action: {
+            SoundManager.shared.playSound(named: "NeonSignEffectView")
+            
             withAnimation(.easeInOut(duration: 0.3)) {
                 _ = poppedIndices.insert(index)
             }

@@ -113,6 +113,8 @@ struct EnvelopesEffectView<Content: View>: View {
     }
     
     func handleEnvelopeTap(index: Int) {
+        SoundManager.shared.playSound(named: "EnvelopesEffectView")
+        
         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
             _ = poppedIndices.insert(index)
         }

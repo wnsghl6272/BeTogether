@@ -83,6 +83,8 @@ struct HeartPuzzleEffectView<Content: View>: View {
     }
     
     func handleHeartTap(index: Int) {
+        SoundManager.shared.playSound(named: "HeartPuzzleEffectView")
+        
         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
             _ = poppedIndices.insert(index)
         }
