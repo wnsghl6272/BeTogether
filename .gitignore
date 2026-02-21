@@ -3,6 +3,7 @@ UserInterfaceState.xcuserstate
 xcuserdata/
 
 # Security & Sensitive Data
+Config.swift
 Secrets.swift
 Secrets.plist
 GoogleService-Info.plist

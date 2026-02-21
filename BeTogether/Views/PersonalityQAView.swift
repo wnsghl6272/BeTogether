@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PersonalityQAView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     @State private var currentQuestionIndex = 0
     @State private var progress: Double = 0.0
@@ -16,19 +17,19 @@ struct PersonalityQAView: View {
     let questions: [QAQuestion] = [
         // 1. Skinship
         QAQuestion(
-            category: "Skinship",
+            category: "Physical affection",
             icon: "💕",
-            question: "How fast do you progress with skinship?",
+            question: "How fast do you progress with physical affection?",
             options: ["Slowly, after building trust", "Naturally, as we feel it", "Quickly, if I like them", "Ideally on the first date"]
         ),
         QAQuestion(
-            category: "Skinship",
+            category: "Physical affection",
             icon: "💋",
             question: "What are your thoughts on PDA?",
             options: ["I love showing affection anywhere", "Holding hands is fine", "Only in private places", "I'm shy about public affection"]
         ),
         QAQuestion(
-            category: "Skinship",
+            category: "Physical affection",
             icon: "🤝",
             question: "How important is physical touch to you?",
             options: ["Essential for connection", "Important but not everything", "Nice to have", "Not a priority"]
@@ -36,19 +37,19 @@ struct PersonalityQAView: View {
         
         // 2. Drinking Style
         QAQuestion(
-            category: "Drinking",
+            category: "Drinking habits",
             icon: "🍺",
             question: "How often do you drink?",
             options: ["Never / Rarely", "Once or twice a week", "Enjoying often with meals", "Party animal!"]
         ),
         QAQuestion(
-            category: "Drinking",
+            category: "Drinking habits",
             icon: "🥂",
             question: "What's your preferred drinking atmosphere?",
             options: ["Quiet talks at an Izakaya", "Lively places with music", "Energetic Clubs/Parties", "Sensible drinking at home"]
         ),
         QAQuestion(
-            category: "Drinking",
+            category: "Drinking habits",
             icon: "🥴",
             question: "What's your habit when drunk?",
             options: ["I get sleepy/quiet", "I become more talkative", "I call everyone", "I become super energetic"]
@@ -56,19 +57,19 @@ struct PersonalityQAView: View {
         
         // 3. Dating Style
         QAQuestion(
-            category: "Dating",
+            category: "Dating style",
             icon: "📅",
             question: "Are you a planner or impulsive?",
             options: ["Detailed planner (J)", "Rough plan is enough", "Go with the flow (P)", "Completely spontaneous"]
         ),
         QAQuestion(
-            category: "Dating",
+            category: "Dating style",
             icon: "📱",
             question: "How important is contact frequency?",
             options: ["All day, every detail", "Morning, Lunch, Night", "Once a day is enough", "Only for setting dates"]
         ),
         QAQuestion(
-            category: "Dating",
+            category: "Dating style",
             icon: "🏠",
             question: "Home date vs Outdoor date?",
             options: ["Cozy home date with Netflix", "Exploring cafes/restaurants", "Active outdoor activities", "Mix of both is best"]
@@ -76,19 +77,19 @@ struct PersonalityQAView: View {
         
         // 4. Spending Habits
         QAQuestion(
-            category: "Spending",
+            category: "Spending habits",
             icon: "💸",
             question: "How do you split date costs?",
             options: ["I prefer to pay", "Let's split 50/50", "Take turns paying", "Whoever suggests pays"]
         ),
         QAQuestion(
-            category: "Spending",
+            category: "Spending habits",
             icon: "💰",
             question: "Are you a saver or a spender?",
             options: ["Strict saver for future", "Balance saving/spending", "Enjoy the present moment", "Love treating myself"]
         ),
         QAQuestion(
-            category: "Spending",
+            category: "Spending habits",
             icon: "👜",
             question: "Do you care about luxury brands?",
             options: ["Very important", "Nice to have quality items", "Not interested at all", "Prefer unique/vintage"]
@@ -165,7 +166,7 @@ struct PersonalityQAView: View {
             }
         } else {
             // Finish
-            userSession.advanceToNextStep()
+            router.navigate(to: .matchingPreference)
         }
     }
 }

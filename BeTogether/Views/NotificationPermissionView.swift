@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NotificationPermissionView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     var body: some View {
         ZStack {
@@ -38,11 +39,11 @@ struct NotificationPermissionView: View {
                     BTButton(title: "Allow Notifications") {
                         // In a real app, request permission here
                         // UNUserNotificationCenter.current().requestAuthorization...
-                        userSession.advanceToNextStep()
+                        router.navigate(to: .locationPermission)
                     }
                     
                     Button("Maybe Later") {
-                        userSession.advanceToNextStep()
+                        router.navigate(to: .locationPermission)
                     }
                     .font(.body)
                     .foregroundColor(.gray)

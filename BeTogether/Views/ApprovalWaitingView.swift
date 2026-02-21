@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ApprovalWaitingView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     // Simple state to rotate loading indicator
     @State private var isRotating = false
@@ -75,14 +76,15 @@ struct ApprovalWaitingView: View {
                 // Action Button
                 if userSession.isApproved {
                     BTButton(title: "Start BeTogether") {
-                        userSession.advanceToNextStep() // Updates to .completed
+                        userSession.isLoggedIn = true 
+                        router.authState = .approved
                     }
                     .padding(.horizontal, 40)
                     .padding(.bottom, 50)
                 } else if userSession.approvalRejectionReason != nil {
                     BTButton(title: "Upload Photos Again") {
-                        // Go back to photo upload
-                        userSession.currentOnboardingStep = .photoUpload
+                        router.authState = .onboarding
+                        router.navigate(to: .photoUpload)
                     }
                     .padding(.horizontal, 40)
                     .padding(.bottom, 50)

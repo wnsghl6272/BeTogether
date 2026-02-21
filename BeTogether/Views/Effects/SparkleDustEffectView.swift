@@ -119,6 +119,8 @@ struct SparkleDustEffectView<Content: View>: View {
     }
     
     func handleSparkleTap(index: Int) {
+        SoundManager.shared.playSound(named: "SparkleDustEffectView")
+        
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
             _ = poppedIndices.insert(index)
         }

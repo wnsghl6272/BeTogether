@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EmailInputView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     @State private var email: String = ""
     
     var isValidEmail: Bool {
@@ -26,49 +27,26 @@ struct EmailInputView: View {
                 BTTextField(placeholder: "example@gmail.com", text: $email, keyboardType: .emailAddress)
                     .padding(.horizontal, 40)
                 
-                // Social Login Placeholders
-                VStack(spacing: 15) {
-                    Button(action: {
-                        // Apple Login Logic
-                    }) {
-                        HStack {
-                            Image(systemName: "apple.logo")
-                            Text("Sign in with Apple")
-                        }
-                        .font(.btButton)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.black)
-                        .cornerRadius(12)
-                    }
-                    
-                    Button(action: {
-                        // Google Login Logic
-                    }) {
-                        HStack {
-                            Image(systemName: "globe") // Placeholder for Google G
-                            Text("Sign in with Google")
-                        }
-                        .font(.btButton)
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        )
-                    }
-                }
-                .padding(.horizontal, 40)
+
                 
                 Spacer()
                 
                 BTButton(title: "Next", action: {
                     userSession.email = email
-                    userSession.advanceToNextStep()
+                    if router.isExistingUser {
+                        Task {
+                            do {
+                                try await AuthManager.shared.sendEmailOTP(email: email)
+                                await MainActor.run {
+                                    router.navigate(to: .emailVerification(email))
+                                }
+                            } catch {
+                                print("Failed to send email OTP: \(error)")
+                            }
+                        }
+                    } else {
+                        router.navigate(to: .profileSetup)
+                    }
                 }, isDisabled: !isValidEmail)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LocationPermissionView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     var body: some View {
         ZStack {
@@ -38,11 +39,11 @@ struct LocationPermissionView: View {
                     BTButton(title: "Allow Location Access") {
                         // In a real app, request permission here
                         // LocationManager.requestWhenInUseAuthorization...
-                        userSession.advanceToNextStep()
+                        router.navigate(to: .terms)
                     }
                     
                     Button("Maybe Later") {
-                        userSession.advanceToNextStep()
+                        router.navigate(to: .terms)
                     }
                     .font(.body)
                     .foregroundColor(.gray)

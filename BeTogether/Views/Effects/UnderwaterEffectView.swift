@@ -108,6 +108,8 @@ struct UnderwaterEffectView<Content: View>: View {
     }
     
     func handleUnderwaterTap(index: Int) {
+        SoundManager.shared.playSound(named: "UnderwaterEffectView")
+        
         withAnimation(.easeOut(duration: 0.3)) {
             _ = poppedIndices.insert(index)
         }

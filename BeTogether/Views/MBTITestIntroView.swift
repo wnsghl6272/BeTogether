@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MBTITestIntroView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     var body: some View {
         ZStack {
@@ -33,7 +34,7 @@ struct MBTITestIntroView: View {
                 Spacer()
                 
                 BTButton(title: "Start Test") {
-                    userSession.advanceToNextStep()
+                    router.navigate(to: .mbtiTest)
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)

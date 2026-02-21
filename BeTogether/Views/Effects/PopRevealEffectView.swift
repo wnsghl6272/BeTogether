@@ -59,6 +59,8 @@ struct PopRevealEffectView<Content: View>: View {
         let isPopped = poppedBubbles.contains(index)
         
         return Button(action: {
+            // SoundManager.shared.playSound(named: "PopRevealEffectView") // File missing
+            
             withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                 _ = poppedBubbles.insert(index)
             }

@@ -96,6 +96,8 @@ struct ScratchEffectView<Content: View>: View {
     }
     
     func handleScratch(index: Int) {
+        SoundManager.shared.playSound(named: "ScratchEffectView")
+        
         withAnimation(.easeOut(duration: 0.5)) {
             _ = poppedIndices.insert(index)
         }

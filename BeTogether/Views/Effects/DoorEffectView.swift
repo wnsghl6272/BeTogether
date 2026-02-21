@@ -18,6 +18,8 @@ struct DoorEffectView<Content: View>: View {
             doorOverlay
         }
         .onTapGesture {
+            // SoundManager.shared.playSound(named: "DoorEffectView") // File missing
+            
             withAnimation(.easeInOut(duration: 2.5)) {
                 isRevealed = true
             }

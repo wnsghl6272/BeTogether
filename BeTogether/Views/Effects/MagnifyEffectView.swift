@@ -106,6 +106,8 @@ struct MagnifyEffectView<Content: View>: View {
     
     func magnifyItem(index: Int, position: CGPoint) -> some View {
         Button(action: {
+            SoundManager.shared.playSound(named: "MagnifyEffectView")
+            
             // Trigger Magnify
             withAnimation(.spring()) {
                 activeMagnifyItem = index

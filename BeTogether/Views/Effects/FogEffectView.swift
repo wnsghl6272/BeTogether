@@ -121,6 +121,8 @@ struct FogEffectView<Content: View>: View {
     }
     
     func handleFogTap(index: Int) {
+        SoundManager.shared.playSound(named: "FogEffectView")
+        
         withAnimation(.easeOut(duration: 1.0)) {
             _ = poppedIndices.insert(index)
         }

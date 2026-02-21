@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		021A35D7F76B7604C42D1D44 /* EmailVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */; };
+		32F41EE65CCD24011E3BA36F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 098415BC677CC23C62B04632 /* Supabase */; };
+		51C828FCDDDD720D244511C3 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E486B4577D0B815468A20B24 /* AuthManager.swift */; };
 		69435F432F3F3593002A6F5D /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F402F3F3593002A6F5D /* LocationPermissionView.swift */; };
 		69435F442F3F3593002A6F5D /* MatchingPreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */; };
 		69435F452F3F3593002A6F5D /* NotificationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */; };
@@ -25,6 +28,18 @@
 		69435F622F434D6D002A6F5D /* CurtainEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F472F434D6D002A6F5D /* CurtainEffectView.swift */; };
 		69435F632F434D6D002A6F5D /* NeonSignEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F4F2F434D6D002A6F5D /* NeonSignEffectView.swift */; };
 		69435F642F434D6D002A6F5D /* SparkleDustEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F522F434D6D002A6F5D /* SparkleDustEffectView.swift */; };
+		69435F662F434D6D002A6F5D /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F652F434D6D002A6F5D /* SoundManager.swift */; };
+		69435FA02F44617E002A6F5D /* FogEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F962F44617E002A6F5D /* FogEffectView.mp3 */; };
+		69435FA12F44617E002A6F5D /* CurtainEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F942F44617E002A6F5D /* CurtainEffectView.mp3 */; };
+		69435FA22F44617E002A6F5D /* UnderwaterEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F9D2F44617E002A6F5D /* UnderwaterEffectView.mp3 */; };
+		69435FA32F44617E002A6F5D /* MagnifyEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F992F44617E002A6F5D /* MagnifyEffectView.mp3 */; };
+		69435FA42F44617E002A6F5D /* GemPolishEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F972F44617E002A6F5D /* GemPolishEffectView.mp3 */; };
+		69435FA52F44617E002A6F5D /* HeartPuzzleEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F982F44617E002A6F5D /* HeartPuzzleEffectView.mp3 */; };
+		69435FA62F44617E002A6F5D /* NeonSignEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F9A2F44617E002A6F5D /* NeonSignEffectView.mp3 */; };
+		69435FA72F44617E002A6F5D /* ScratchEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F9B2F44617E002A6F5D /* ScratchEffectView.mp3 */; };
+		69435FA82F44617E002A6F5D /* SparkleDustEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F9C2F44617E002A6F5D /* SparkleDustEffectView.mp3 */; };
+		69435FA92F44617E002A6F5D /* EnvelopesEffectView.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 69435F952F44617E002A6F5D /* EnvelopesEffectView.mp3 */; };
+		69435FAD2F486A9F002A6F5D /* OnboardingRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FAC2F486A9F002A6F5D /* OnboardingRouter.swift */; };
 		B001 /* BeTogetherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001 /* BeTogetherApp.swift */; };
 		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002 /* ContentView.swift */; };
 		B003 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003 /* SplashView.swift */; };
@@ -58,9 +73,12 @@
 		B031 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A031 /* ExploreView.swift */; };
 		B032 /* NotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A032 /* NotificationView.swift */; };
 		B033 /* ProfileMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A033 /* ProfileMainView.swift */; };
+		E9EA5CEF9123CE5898FF66BE /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3489DB823DDEC810AD4A757B /* Config.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailVerificationView.swift; sourceTree = "<group>"; };
+		3489DB823DDEC810AD4A757B /* Config.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		69435F402F3F3593002A6F5D /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchingPreferenceView.swift; sourceTree = "<group>"; };
 		69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionView.swift; sourceTree = "<group>"; };
@@ -79,6 +97,18 @@
 		69435F522F434D6D002A6F5D /* SparkleDustEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleDustEffectView.swift; sourceTree = "<group>"; };
 		69435F532F434D6D002A6F5D /* SparkleEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleEffectView.swift; sourceTree = "<group>"; };
 		69435F542F434D6D002A6F5D /* UnderwaterEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnderwaterEffectView.swift; sourceTree = "<group>"; };
+		69435F652F434D6D002A6F5D /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
+		69435F942F44617E002A6F5D /* CurtainEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = CurtainEffectView.mp3; sourceTree = "<group>"; };
+		69435F952F44617E002A6F5D /* EnvelopesEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = EnvelopesEffectView.mp3; sourceTree = "<group>"; };
+		69435F962F44617E002A6F5D /* FogEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = FogEffectView.mp3; sourceTree = "<group>"; };
+		69435F972F44617E002A6F5D /* GemPolishEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = GemPolishEffectView.mp3; sourceTree = "<group>"; };
+		69435F982F44617E002A6F5D /* HeartPuzzleEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = HeartPuzzleEffectView.mp3; sourceTree = "<group>"; };
+		69435F992F44617E002A6F5D /* MagnifyEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = MagnifyEffectView.mp3; sourceTree = "<group>"; };
+		69435F9A2F44617E002A6F5D /* NeonSignEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = NeonSignEffectView.mp3; sourceTree = "<group>"; };
+		69435F9B2F44617E002A6F5D /* ScratchEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = ScratchEffectView.mp3; sourceTree = "<group>"; };
+		69435F9C2F44617E002A6F5D /* SparkleDustEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = SparkleDustEffectView.mp3; sourceTree = "<group>"; };
+		69435F9D2F44617E002A6F5D /* UnderwaterEffectView.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = UnderwaterEffectView.mp3; sourceTree = "<group>"; };
+		69435FAC2F486A9F002A6F5D /* OnboardingRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingRouter.swift; sourceTree = "<group>"; };
 		A001 /* BeTogetherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeTogetherApp.swift; sourceTree = "<group>"; };
 		A002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A003 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
@@ -112,6 +142,7 @@
 		A031 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		A032 /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationView.swift; sourceTree = "<group>"; };
 		A033 /* ProfileMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileMainView.swift; sourceTree = "<group>"; };
+		E486B4577D0B815468A20B24 /* AuthManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		P001 /* BeTogether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeTogether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -120,12 +151,23 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				32F41EE65CCD24011E3BA36F /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2BC1B0E1B87503EC7CAEC112 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				3489DB823DDEC810AD4A757B /* Config.swift */,
+				E486B4577D0B815468A20B24 /* AuthManager.swift */,
+			);
+			name = Services;
+			path = Services;
+			sourceTree = "<group>";
+		};
 		69435F552F434D6D002A6F5D /* Effects */ = {
 			isa = PBXGroup;
 			children = (
@@ -144,8 +186,34 @@
 				69435F522F434D6D002A6F5D /* SparkleDustEffectView.swift */,
 				69435F532F434D6D002A6F5D /* SparkleEffectView.swift */,
 				69435F542F434D6D002A6F5D /* UnderwaterEffectView.swift */,
+				69435F652F434D6D002A6F5D /* SoundManager.swift */,
 			);
 			path = Effects;
+			sourceTree = "<group>";
+		};
+		69435F9E2F44617E002A6F5D /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				69435F942F44617E002A6F5D /* CurtainEffectView.mp3 */,
+				69435F952F44617E002A6F5D /* EnvelopesEffectView.mp3 */,
+				69435F962F44617E002A6F5D /* FogEffectView.mp3 */,
+				69435F972F44617E002A6F5D /* GemPolishEffectView.mp3 */,
+				69435F982F44617E002A6F5D /* HeartPuzzleEffectView.mp3 */,
+				69435F992F44617E002A6F5D /* MagnifyEffectView.mp3 */,
+				69435F9A2F44617E002A6F5D /* NeonSignEffectView.mp3 */,
+				69435F9B2F44617E002A6F5D /* ScratchEffectView.mp3 */,
+				69435F9C2F44617E002A6F5D /* SparkleDustEffectView.mp3 */,
+				69435F9D2F44617E002A6F5D /* UnderwaterEffectView.mp3 */,
+			);
+			path = Sounds;
+			sourceTree = "<group>";
+		};
+		69435F9F2F44617E002A6F5D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				69435F9E2F44617E002A6F5D /* Sounds */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		G001 = {
@@ -159,6 +227,7 @@
 		G002 /* BeTogether */ = {
 			isa = PBXGroup;
 			children = (
+				69435F9F2F44617E002A6F5D /* Resources */,
 				A029 /* Assets.xcassets */,
 				A001 /* BeTogetherApp.swift */,
 				G003 /* Views */,
@@ -166,6 +235,7 @@
 				G008 /* Models */,
 				G005 /* Components */,
 				G006 /* Extensions */,
+				2BC1B0E1B87503EC7CAEC112 /* Services */,
 			);
 			path = BeTogether;
 			sourceTree = "<group>";
@@ -201,6 +271,7 @@
 				A031 /* ExploreView.swift */,
 				A032 /* NotificationView.swift */,
 				A033 /* ProfileMainView.swift */,
+				0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -208,6 +279,7 @@
 		G004 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				69435FAC2F486A9F002A6F5D /* OnboardingRouter.swift */,
 				A011 /* UserSessionViewModel.swift */,
 			);
 			path = ViewModels;
@@ -264,6 +336,9 @@
 			dependencies = (
 			);
 			name = BeTogether;
+			packageProductDependencies = (
+				098415BC677CC23C62B04632 /* Supabase */,
+			);
 			productName = BeTogether;
 			productReference = P001 /* BeTogether.app */;
 			productType = "com.apple.product-type.application";
@@ -292,6 +367,9 @@
 				Base,
 			);
 			mainGroup = G001;
+			packageReferences = (
+				2D53917D662F3A5622102BA0 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			productRefGroup = G007 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -306,6 +384,16 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				69435FA02F44617E002A6F5D /* FogEffectView.mp3 in Resources */,
+				69435FA12F44617E002A6F5D /* CurtainEffectView.mp3 in Resources */,
+				69435FA22F44617E002A6F5D /* UnderwaterEffectView.mp3 in Resources */,
+				69435FA32F44617E002A6F5D /* MagnifyEffectView.mp3 in Resources */,
+				69435FA42F44617E002A6F5D /* GemPolishEffectView.mp3 in Resources */,
+				69435FA52F44617E002A6F5D /* HeartPuzzleEffectView.mp3 in Resources */,
+				69435FA62F44617E002A6F5D /* NeonSignEffectView.mp3 in Resources */,
+				69435FA72F44617E002A6F5D /* ScratchEffectView.mp3 in Resources */,
+				69435FA82F44617E002A6F5D /* SparkleDustEffectView.mp3 in Resources */,
+				69435FA92F44617E002A6F5D /* EnvelopesEffectView.mp3 in Resources */,
 				B029 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -335,6 +423,7 @@
 				69435F622F434D6D002A6F5D /* CurtainEffectView.swift in Sources */,
 				69435F632F434D6D002A6F5D /* NeonSignEffectView.swift in Sources */,
 				69435F642F434D6D002A6F5D /* SparkleDustEffectView.swift in Sources */,
+				69435F662F434D6D002A6F5D /* SoundManager.swift in Sources */,
 				B004 /* LandingView.swift in Sources */,
 				B005 /* PhoneInputView.swift in Sources */,
 				B006 /* PhoneVerificationView.swift in Sources */,
@@ -365,8 +454,12 @@
 				B028 /* MainTabView.swift in Sources */,
 				B030 /* MatchesView.swift in Sources */,
 				B031 /* ExploreView.swift in Sources */,
+				69435FAD2F486A9F002A6F5D /* OnboardingRouter.swift in Sources */,
 				B032 /* NotificationView.swift in Sources */,
 				B033 /* ProfileMainView.swift in Sources */,
+				E9EA5CEF9123CE5898FF66BE /* Config.swift in Sources */,
+				51C828FCDDDD720D244511C3 /* AuthManager.swift in Sources */,
+				021A35D7F76B7604C42D1D44 /* EmailVerificationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -570,6 +663,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2D53917D662F3A5622102BA0 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		098415BC677CC23C62B04632 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2D53917D662F3A5622102BA0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = PR001 /* Project object */;
 }

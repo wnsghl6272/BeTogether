@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TermsView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     @State private var termsAgreed: Bool = false
     @State private var privacyAgreed: Bool = false
     @State private var marketingAgreed: Bool = false
@@ -65,7 +66,7 @@ struct TermsView: View {
                 Spacer()
                 
                 BTButton(title: "Next", action: {
-                    userSession.advanceToNextStep()
+                    router.navigate(to: .emailInput)
                 }, isDisabled: !allAgreed)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)

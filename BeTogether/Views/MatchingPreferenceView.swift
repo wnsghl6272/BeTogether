@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MatchingPreferenceView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     // Preferences State
     @State private var preferredGender: String = "Any"
@@ -131,7 +132,7 @@ struct MatchingPreferenceView: View {
                         
                         BTButton(title: "Save & Continue") {
                             savePreferences()
-                            userSession.advanceToNextStep()
+                            router.navigate(to: .contactBlocking)
                         }
                         .padding(.bottom, 20)
                     }
