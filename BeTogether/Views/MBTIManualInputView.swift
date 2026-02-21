@@ -62,7 +62,7 @@ struct MBTIManualInputView: View {
                 // Complete Button
                 BTButton(title: "Complete Setup", action: {
                     userSession.mbtiResult = mbtiResult
-                    router.navigate(to: .personalityQAIntro)
+                    router.navigate(to: .mbtiResult)
                 }, isDisabled: eiValue == 0.5 || nsValue == 0.5 || ftValue == 0.5 || pjValue == 0.5)
                 .padding(.horizontal, 40)
                 
@@ -111,4 +111,5 @@ struct MBTIManualInputView: View {
 #Preview {
     MBTIManualInputView()
         .environmentObject(UserSessionViewModel())
+        .environmentObject(OnboardingRouter())
 }

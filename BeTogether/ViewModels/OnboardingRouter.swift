@@ -15,6 +15,7 @@ enum OnboardingDestination: Hashable {
     case locationPermission
     case terms
     case emailInput
+    case emailVerification(String) // email verification
     case profileSetup
     case mbtiManualInput
     case mbtiTestIntro
@@ -31,35 +32,61 @@ enum OnboardingDestination: Hashable {
 class OnboardingRouter: ObservableObject {
     @Published var authState: AuthState = .unauthenticated
     @Published var isExistingUser: Bool = false
+    @Published var errorMessage: String? = nil
     
     @Published var path = NavigationPath()
-    
     func navigate(to destination: OnboardingDestination) {
+        print("Pre-navigate path count: \(path.count)")
         path.append(destination)
+        print("Navigate called. Appended \(destination) to path. New count: \(path.count)")
     }
     
     func popToRoot() {
+        print("popToRoot called.")
         path.removeLast(path.count)
     }
     
-    // Mock for now, until Supabase SDK is fully integrated
     func checkUserExists(phone: String, userSession: UserSessionViewModel) async {
-        // TODO: Call Supabase edge function 'check-user-exists'
-        self.isExistingUser = false 
-        
-        userSession.phoneNumber = phone
-        navigate(to: .verification(phone))
+        do {
+            self.errorMessage = nil
+            
+            var exists = false
+            do {
+                exists = try await AuthManager.shared.checkUserExists(phone: phone)
+            } catch {
+                print("Edge function error (maybe not deployed?): \(error)")
+                // We don't fail the whole login just because the check fails
+                // Let it proceed to send OTP as a new user by default
+            }
+            
+            do {
+                try await AuthManager.shared.sendSMSOTP(phone: phone)
+            } catch {
+                throw error
+            }
+            
+            userSession.phoneNumber = phone
+            self.isExistingUser = exists
+            navigate(to: .verification(phone))
+        } catch {
+            let errStr = String(describing: error)
+            print("Error checking user / sending OTP: \(error)")
+            await MainActor.run {
+                self.errorMessage = "Send Error: \(error.localizedDescription)\nDev: \(errStr)"
+            }
+        }
     }
     
     func handleOTPVerified(status: String) {
+        print("handleOTPVerified called with status: \(status)")
         // status could be fetched from `profiles` table
         if status == "approved" {
             self.authState = .approved
         } else if status == "pending_approval" {
             self.authState = .pendingApproval
         } else {
-            self.authState = .onboarding
-            navigate(to: .notificationPermission)
+            print("Calling navigate(to: .notificationPermission) for new user")
+            self.navigate(to: .notificationPermission)
         }
     }
     

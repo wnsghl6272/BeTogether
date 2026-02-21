@@ -313,7 +313,7 @@ struct ProfileSetupView: View {
             
             BTButton(title: "Complete Profile", action: {
                 userSession.selfIntro = selfIntro
-                router.navigate(to: .mbtiTestIntro)
+                router.navigate(to: .mbtiManualInput)
             }, isDisabled: selfIntro.isEmpty)
             .padding(.horizontal, 40)
         }
@@ -323,4 +323,5 @@ struct ProfileSetupView: View {
 #Preview {
     ProfileSetupView()
         .environmentObject(UserSessionViewModel())
+        .environmentObject(OnboardingRouter())
 }

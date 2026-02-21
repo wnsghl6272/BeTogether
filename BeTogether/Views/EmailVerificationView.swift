@@ -1,13 +1,12 @@
 import SwiftUI
 
-struct PhoneVerificationView: View {
-    let phone: String
+struct EmailVerificationView: View {
+    let email: String
     @EnvironmentObject var userSession: UserSessionViewModel
     @EnvironmentObject var router: OnboardingRouter
     @State private var otpCode: String = ""
     @State private var timeRemaining: Int = 180
     @State private var timerRunning: Bool = true
-    @State private var isVerified: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -23,7 +22,7 @@ struct PhoneVerificationView: View {
                     .foregroundColor(.btTeal)
                     .multilineTextAlignment(.center)
                 
-                Text("Enter the code sent to \(phone)")
+                Text("Enter the code sent to \(email)")
                     .font(.btSubheader)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
@@ -44,9 +43,13 @@ struct PhoneVerificationView: View {
                     Spacer()
                     
                     Button(action: {
-                        // Resend Logic
-                        timeRemaining = 180
-                        timerRunning = true
+                        Task {
+                            try? await AuthManager.shared.sendEmailOTP(email: email)
+                            await MainActor.run {
+                                timeRemaining = 180
+                                timerRunning = true
+                            }
+                        }
                     }) {
                         Text("Resend Code")
                             .font(.btBody)
@@ -56,43 +59,17 @@ struct PhoneVerificationView: View {
                 }
                 .padding(.horizontal, 40)
                 
-                if let errorMessage = router.errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                }
-                
                 Spacer()
                 
-                if router.isExistingUser {
-                    Button(action: {
-                        router.navigate(to: .emailInput)
-                    }) {
-                        Text("Get code via email")
-                            .font(.btBody)
-                            .foregroundColor(.btTeal)
-                            .underline()
-                    }
-                    .padding(.bottom, 10)
-                }
-                
                 BTButton(title: "Verify", action: {
-                    userSession.phoneNumber = phone
                     Task {
                         do {
-                            let _ = try await AuthManager.shared.verifySMSOTP(phone: phone, token: otpCode)
+                            let _ = try await AuthManager.shared.verifyEmailOTP(email: email, token: otpCode)
                             await MainActor.run {
-                                // bypass router.handleOTPVerified to avoid NavigationStack path drop bug
-                                self.isVerified = true
+                                router.handleOTPVerified(status: "success")
                             }
                         } catch {
-                            let errStr = String(describing: error).lowercased()
-                            print("Verification failed: \(error)")
-                            await MainActor.run {
-                                router.errorMessage = "Auth Error: \(error.localizedDescription)\nDev: \(errStr)"
-                            }
+                            print("Email Verification failed: \(error)")
                         }
                     }
                 }, isDisabled: otpCode.count != 6)
@@ -100,11 +77,6 @@ struct PhoneVerificationView: View {
                 .padding(.bottom, 50)
             }
         }
-        .background(
-            NavigationLink(destination: NotificationPermissionView(), isActive: $isVerified) {
-                EmptyView()
-            }
-        )
         .onReceive(timer) { _ in
             if timeRemaining > 0 && timerRunning {
                 timeRemaining -= 1
@@ -122,6 +94,7 @@ struct PhoneVerificationView: View {
 }
 
 #Preview {
-    PhoneVerificationView(phone: "+61412345678")
+    EmailVerificationView(email: "example@gmail.com")
         .environmentObject(UserSessionViewModel())
+        .environmentObject(OnboardingRouter())
 }

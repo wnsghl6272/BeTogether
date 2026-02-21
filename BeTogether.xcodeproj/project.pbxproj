@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		021A35D7F76B7604C42D1D44 /* EmailVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */; };
+		32F41EE65CCD24011E3BA36F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 098415BC677CC23C62B04632 /* Supabase */; };
+		51C828FCDDDD720D244511C3 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E486B4577D0B815468A20B24 /* AuthManager.swift */; };
 		69435F432F3F3593002A6F5D /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F402F3F3593002A6F5D /* LocationPermissionView.swift */; };
 		69435F442F3F3593002A6F5D /* MatchingPreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */; };
 		69435F452F3F3593002A6F5D /* NotificationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */; };
@@ -70,9 +73,12 @@
 		B031 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A031 /* ExploreView.swift */; };
 		B032 /* NotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A032 /* NotificationView.swift */; };
 		B033 /* ProfileMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A033 /* ProfileMainView.swift */; };
+		E9EA5CEF9123CE5898FF66BE /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3489DB823DDEC810AD4A757B /* Config.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailVerificationView.swift; sourceTree = "<group>"; };
+		3489DB823DDEC810AD4A757B /* Config.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		69435F402F3F3593002A6F5D /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchingPreferenceView.swift; sourceTree = "<group>"; };
 		69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionView.swift; sourceTree = "<group>"; };
@@ -136,6 +142,7 @@
 		A031 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		A032 /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationView.swift; sourceTree = "<group>"; };
 		A033 /* ProfileMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileMainView.swift; sourceTree = "<group>"; };
+		E486B4577D0B815468A20B24 /* AuthManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		P001 /* BeTogether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeTogether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -144,12 +151,23 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				32F41EE65CCD24011E3BA36F /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2BC1B0E1B87503EC7CAEC112 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				3489DB823DDEC810AD4A757B /* Config.swift */,
+				E486B4577D0B815468A20B24 /* AuthManager.swift */,
+			);
+			name = Services;
+			path = Services;
+			sourceTree = "<group>";
+		};
 		69435F552F434D6D002A6F5D /* Effects */ = {
 			isa = PBXGroup;
 			children = (
@@ -217,6 +235,7 @@
 				G008 /* Models */,
 				G005 /* Components */,
 				G006 /* Extensions */,
+				2BC1B0E1B87503EC7CAEC112 /* Services */,
 			);
 			path = BeTogether;
 			sourceTree = "<group>";
@@ -252,6 +271,7 @@
 				A031 /* ExploreView.swift */,
 				A032 /* NotificationView.swift */,
 				A033 /* ProfileMainView.swift */,
+				0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -316,6 +336,9 @@
 			dependencies = (
 			);
 			name = BeTogether;
+			packageProductDependencies = (
+				098415BC677CC23C62B04632 /* Supabase */,
+			);
 			productName = BeTogether;
 			productReference = P001 /* BeTogether.app */;
 			productType = "com.apple.product-type.application";
@@ -344,6 +367,9 @@
 				Base,
 			);
 			mainGroup = G001;
+			packageReferences = (
+				2D53917D662F3A5622102BA0 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			productRefGroup = G007 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -431,6 +457,9 @@
 				69435FAD2F486A9F002A6F5D /* OnboardingRouter.swift in Sources */,
 				B032 /* NotificationView.swift in Sources */,
 				B033 /* ProfileMainView.swift in Sources */,
+				E9EA5CEF9123CE5898FF66BE /* Config.swift in Sources */,
+				51C828FCDDDD720D244511C3 /* AuthManager.swift in Sources */,
+				021A35D7F76B7604C42D1D44 /* EmailVerificationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -634,6 +663,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2D53917D662F3A5622102BA0 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		098415BC677CC23C62B04632 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2D53917D662F3A5622102BA0 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = PR001 /* Project object */;
 }

@@ -41,6 +41,8 @@ struct ContentView: View {
                                     TermsView()
                                 case .emailInput:
                                     EmailInputView()
+                                case .emailVerification(let email):
+                                    EmailVerificationView(email: email)
                                 case .profileSetup:
                                     ProfileSetupView()
                                 case .mbtiManualInput:
@@ -64,11 +66,11 @@ struct ContentView: View {
                                 }
                             }
                     }
-                    .environmentObject(router)
                     .transition(.opacity)
                 }
             }
         }
+        .environmentObject(router)
         .animation(.default, value: router.authState)
         .animation(.default, value: userSession.isLoggedIn)
         .animation(.default, value: showSplash)

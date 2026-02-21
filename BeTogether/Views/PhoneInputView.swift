@@ -40,10 +40,20 @@ struct PhoneInputView: View {
                 }
                 .padding(.horizontal, 24)
                 
+                if let errorMessage = router.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                }
+                
                 Spacer()
                 
                 BTButton(title: "Next", action: {
-                    let fullPhone = "\(countryCode)\(phoneNumber)"
+                    // Remove the "+" prefix so it matches Supabase's Test Phone Numbers format
+                    let sanitizedCountryCode = countryCode.replacingOccurrences(of: "+", with: "")
+                    let fullPhone = "\(sanitizedCountryCode)\(phoneNumber)"
                     Task {
                         await router.checkUserExists(phone: fullPhone, userSession: userSession)
                     }

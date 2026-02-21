@@ -227,4 +227,5 @@ extension Color {
     vm.mbtiResult = "ESFP"
     return MBTIResultView()
         .environmentObject(vm)
+        .environmentObject(OnboardingRouter())
 }

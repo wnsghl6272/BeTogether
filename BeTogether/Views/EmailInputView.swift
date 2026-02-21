@@ -33,7 +33,20 @@ struct EmailInputView: View {
                 
                 BTButton(title: "Next", action: {
                     userSession.email = email
-                    router.navigate(to: .profileSetup)
+                    if router.isExistingUser {
+                        Task {
+                            do {
+                                try await AuthManager.shared.sendEmailOTP(email: email)
+                                await MainActor.run {
+                                    router.navigate(to: .emailVerification(email))
+                                }
+                            } catch {
+                                print("Failed to send email OTP: \(error)")
+                            }
+                        }
+                    } else {
+                        router.navigate(to: .profileSetup)
+                    }
                 }, isDisabled: !isValidEmail)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)
