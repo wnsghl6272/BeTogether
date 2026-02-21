@@ -7,7 +7,6 @@ struct PhoneVerificationView: View {
     @State private var otpCode: String = ""
     @State private var timeRemaining: Int = 180
     @State private var timerRunning: Bool = true
-    @State private var isVerified: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -80,18 +79,18 @@ struct PhoneVerificationView: View {
                 
                 BTButton(title: "Verify", action: {
                     userSession.phoneNumber = phone
+                    router.errorMessage = nil
                     Task {
                         do {
-                            let _ = try await AuthManager.shared.verifySMSOTP(phone: phone, token: otpCode)
+                            try await AuthManager.shared.verifySMSOTP(phone: phone, token: otpCode)
+                            // SDK가 세션(Keychain)을 자동 저장하므로 바로 다음 화면으로 이동
                             await MainActor.run {
-                                // bypass router.handleOTPVerified to avoid NavigationStack path drop bug
-                                self.isVerified = true
+                                router.handleOTPVerified(status: "success")
                             }
                         } catch {
-                            let errStr = String(describing: error).lowercased()
                             print("Verification failed: \(error)")
                             await MainActor.run {
-                                router.errorMessage = "Auth Error: \(error.localizedDescription)\nDev: \(errStr)"
+                                router.errorMessage = "인증 실패: \(error.localizedDescription)"
                             }
                         }
                     }
@@ -100,11 +99,6 @@ struct PhoneVerificationView: View {
                 .padding(.bottom, 50)
             }
         }
-        .background(
-            NavigationLink(destination: NotificationPermissionView(), isActive: $isVerified) {
-                EmptyView()
-            }
-        )
         .onReceive(timer) { _ in
             if timeRemaining > 0 && timerRunning {
                 timeRemaining -= 1

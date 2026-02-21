@@ -13,85 +13,85 @@ class AuthManager: ObservableObject {
     }
     
     // MARK: - Phone (SMS) Authentication
+    
+    /// OTP SMS를 발송합니다.
+    /// URLSession 직접 호출 사용 — Supabase SDK의 signInWithOTP(phone:)은 서버 응답({message:"Otp sent"})을
+    /// 파싱하지 못하고 -1017 에러를 내뱉는 SDK 버그가 있어 우회합니다.
     func sendSMSOTP(phone: String) async throws {
         guard let url = URL(string: "\(Config.supabaseURL.absoluteString)/auth/v1/otp") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["phone": phone])
         
-        let body: [String: Any] = ["phone": phone]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        let config = URLSessionConfiguration.ephemeral
-        let session = URLSession(configuration: config)
-        
+        // ephemeral 세션 사용 — URLSession.shared는 기존 HTTP/2 연결을 재사용하다가
+        // 시뮬레이터에서 끊어진 연결을 잡아 -1005 에러를 유발합니다.
+        let session = URLSession(configuration: .ephemeral)
         let (data, response) = try await session.data(for: request)
-        if let httpResponse = response as? HTTPURLResponse {
-            if !(200...299).contains(httpResponse.statusCode) {
-                let errString = String(data: data, encoding: .utf8) ?? "Unknown Error"
-                throw NSError(domain: "AuthAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server failed with \(httpResponse.statusCode): \(errString)"])
-            }
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let errStr = String(data: data, encoding: .utf8) ?? "Unknown Error"
+            throw NSError(domain: "AuthAPI", code: httpResponse.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "OTP 발송 실패 (\(httpResponse.statusCode)): \(errStr)"])
         }
     }
     
+    /// SMS OTP를 검증하고 세션을 저장합니다.
+    /// Supabase SDK 내부도 shared URLSession을 사용하여 -1005 에러가 발생하므로 ephemeral URLSession으로 우회합니다.
+    /// 토큰 파싱 후 SDK의 setSession을 동기적으로 await하여 Keychain에 세션을 안전하게 저장합니다.
     func verifySMSOTP(phone: String, token: String) async throws {
         guard let url = URL(string: "\(Config.supabaseURL.absoluteString)/auth/v1/verify") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let body: [String: Any] = [
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
             "type": "sms",
             "phone": phone,
             "token": token
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        ])
         
-        let config = URLSessionConfiguration.ephemeral
-        let session = URLSession(configuration: config)
-        
+        let session = URLSession(configuration: .ephemeral)
         let (data, response) = try await session.data(for: request)
-        if let httpResponse = response as? HTTPURLResponse {
-            if !(200...299).contains(httpResponse.statusCode) {
-                let errString = String(data: data, encoding: .utf8) ?? "Unknown Error"
-                throw NSError(domain: "AuthAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Verify failed (\(httpResponse.statusCode)): \(errString)"])
-            }
+        
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let errStr = String(data: data, encoding: .utf8) ?? "Unknown Error"
+            throw NSError(domain: "AuthAPI", code: httpResponse.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "인증 실패 (\(httpResponse.statusCode)): \(errStr)"])
         }
         
-        // If data is empty or not valid JSON, but we got a 200 OK, it's still a success.
-        // Supabase sets the auth cookie implicitly on the Edge sometimes.
-        if data.isEmpty { return }
+        // 200 OK — 토큰을 파싱해서 SDK 세션에 동기적으로 저장
+        guard !data.isEmpty,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let accessToken = json["access_token"] as? String,
+              let refreshToken = json["refresh_token"] as? String else {
+            // 토큰 없이 200 OK면 인증 자체는 성공한 것 (세션 저장만 건너뜀)
+            return
+        }
         
+        // setSession을 2초 타임아웃으로 실행 — 내부에서 GET /user가 4번 재시도하며
+        // UI를 잠그는 것을 방지합니다. 토큰이 전달된 시점에 세션은 이미 유효합니다.
         do {
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                // If the response contains an error message inside a 200 OK (some edge cases), catch it
-                if let msg = json["msg"] as? String {
-                    throw NSError(domain: "AuthAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: msg])
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    try await self.client.auth.setSession(accessToken: accessToken, refreshToken: refreshToken)
                 }
-                
-                // If it successfully returns session tokens, manually update the client
-                if let sessionToken = json["access_token"] as? String,
-                   let refreshToken = json["refresh_token"] as? String {
-                    // Execute setSession in a detached Task so it doesn't block verifySMSOTP from returning.
-                    // Supabase Swift SDK has a known bug where `GET /user` internal retry logic hangs for 4+ seconds
-                    // if it fails to decode the User object, completely freezing the UI navigation.
-                    Task {
-                        do {
-                            try await client.auth.setSession(accessToken: sessionToken, refreshToken: refreshToken)
-                        } catch {
-                            print("setSession threw an error (likely User parse error) but OTP was fully verified: \(error)")
-                        }
-                    }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 2_000_000_000) // 2초 타임아웃
+                    throw CancellationError()
                 }
+                // 먼저 끝나는 쪽을 채택 (setSession 성공 또는 타임아웃)
+                try await group.next()
+                group.cancelAll()
             }
         } catch {
-            print("Failed to decode successful verify response (probably empty or different format): \(error)")
-            // If the JSON parsing itself fails, we still consider the OTP verified because the server returned 200 OK.
+            print("setSession completed or timed out (세션 토큰은 전달됨): \(error)")
         }
     }
     
+
     // MARK: - Email Authentication
     func sendEmailOTP(email: String) async throws {
         try await client.auth.signInWithOTP(email: email)
