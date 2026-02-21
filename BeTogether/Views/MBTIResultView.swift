@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MBTIResultView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     // Mock Data for MBTI Types and Animals
     let mbtiData: [String: (animal: String, title: String, desc: String, tags: [String])] = [
@@ -160,7 +161,7 @@ struct MBTIResultView: View {
                 VStack(spacing: 15) {
                     Button(action: {
                         // Reset to Test Intro
-                        userSession.startMBTITest()
+                        router.navigate(to: .mbtiTestIntro)
                     }) {
                         Text("Test Again")
                             .font(.btButton)
@@ -177,7 +178,7 @@ struct MBTIResultView: View {
                     
                     Button(action: {
                         // Continue to Personality Q&A
-                        userSession.advanceToNextStep()
+                        router.navigate(to: .personalityQAIntro)
                     }) {
                         Text("Continue Registration")
                             .font(.btButton)

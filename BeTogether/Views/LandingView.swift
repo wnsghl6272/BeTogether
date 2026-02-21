@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LandingView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     var body: some View {
         ZStack {
@@ -29,7 +30,6 @@ struct LandingView: View {
                 Spacer()
                 
                 Image(systemName: "heart.fill")
-                // ... remaining content ...
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 80, height: 80)
@@ -50,7 +50,7 @@ struct LandingView: View {
                 
                 BTButton(title: "Start") {
                     withAnimation {
-                        userSession.advanceToNextStep()
+                        router.navigate(to: .phoneInput)
                     }
                 }
                 .padding(.horizontal, 40)

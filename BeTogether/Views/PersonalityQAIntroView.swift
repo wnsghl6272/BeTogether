@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PersonalityQAIntroView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     var body: some View {
         ZStack {
@@ -30,7 +31,7 @@ struct PersonalityQAIntroView: View {
                 Spacer()
                 
                 BTButton(title: "Start Q&A") {
-                    userSession.advanceToNextStep()
+                    router.navigate(to: .personalityQA)
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)

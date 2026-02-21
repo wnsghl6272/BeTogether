@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContactBlockingView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     @State private var showingContactPicker = false
     @State private var blockedContacts: [String] = [] // Mock data for now
     
@@ -95,7 +96,7 @@ struct ContactBlockingView: View {
                     Spacer().frame(height: 10)
                     
                     BTButton(title: "Complete & Start") {
-                        userSession.advanceToNextStep()
+                        router.navigate(to: .photoUpload)
                     }
                 }
                 .padding(.horizontal, 40)

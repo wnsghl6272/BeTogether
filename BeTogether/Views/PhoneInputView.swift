@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PhoneInputView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     @State private var phoneNumber: String = ""
     @State private var countryCode: String = "+61"
     
@@ -42,8 +43,10 @@ struct PhoneInputView: View {
                 Spacer()
                 
                 BTButton(title: "Next", action: {
-                    userSession.phoneNumber = "\(countryCode)\(phoneNumber)"
-                    userSession.advanceToNextStep()
+                    let fullPhone = "\(countryCode)\(phoneNumber)"
+                    Task {
+                        await router.checkUserExists(phone: fullPhone, userSession: userSession)
+                    }
                 }, isDisabled: phoneNumber.isEmpty || phoneNumber.count < 9)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)

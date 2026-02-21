@@ -3,6 +3,7 @@ import PhotosUI
 
 struct PhotoUploadView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     @State private var photo1: UIImage? = nil
     @State private var photo2: UIImage? = nil
@@ -104,7 +105,7 @@ struct PhotoUploadView: View {
                 
                 // Submit Button
                 BTButton(title: "Submit for Review", action: {
-                    userSession.advanceToNextStep()
+                    router.finishOnboarding(userSession: userSession)
                 }, isDisabled: photo1 == nil || photo2 == nil)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileSetupView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     enum ProfileStep {
         case birthday
@@ -312,7 +313,7 @@ struct ProfileSetupView: View {
             
             BTButton(title: "Complete Profile", action: {
                 userSession.selfIntro = selfIntro
-                userSession.advanceToNextStep() // Proceed to MBTI
+                router.navigate(to: .mbtiTestIntro)
             }, isDisabled: selfIntro.isEmpty)
             .padding(.horizontal, 40)
         }

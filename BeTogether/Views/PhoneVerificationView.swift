@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct PhoneVerificationView: View {
+    let phone: String
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     @State private var otpCode: String = ""
     @State private var timeRemaining: Int = 180
     @State private var timerRunning: Bool = true
@@ -20,7 +22,7 @@ struct PhoneVerificationView: View {
                     .foregroundColor(.btTeal)
                     .multilineTextAlignment(.center)
                 
-                Text("Enter the code sent to \(userSession.phoneNumber)")
+                Text("Enter the code sent to \(phone)")
                     .font(.btSubheader)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
@@ -56,7 +58,9 @@ struct PhoneVerificationView: View {
                 Spacer()
                 
                 BTButton(title: "Verify", action: {
-                    userSession.advanceToNextStep()
+                    userSession.phoneNumber = phone
+                    // TODO: call actual Supabase verifyOTP here
+                    router.handleOTPVerified(status: "success")
                 }, isDisabled: otpCode.count != 6)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)
@@ -79,6 +83,6 @@ struct PhoneVerificationView: View {
 }
 
 #Preview {
-    PhoneVerificationView()
+    PhoneVerificationView(phone: "+61412345678")
         .environmentObject(UserSessionViewModel())
 }

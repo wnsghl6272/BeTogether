@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MBTIManualInputView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     // Sliders: 0 = Left (E/S/T/J), 1 = Right (I/N/F/P)
     // Actually standard MBTI is E vs I, S vs N, T vs F, J vs P
@@ -61,13 +62,13 @@ struct MBTIManualInputView: View {
                 // Complete Button
                 BTButton(title: "Complete Setup", action: {
                     userSession.mbtiResult = mbtiResult
-                    userSession.advanceToNextStep()
+                    router.navigate(to: .personalityQAIntro)
                 }, isDisabled: eiValue == 0.5 || nsValue == 0.5 || ftValue == 0.5 || pjValue == 0.5)
                 .padding(.horizontal, 40)
                 
                 // Don't know link
                 Button(action: {
-                    userSession.startMBTITest()
+                    router.navigate(to: .mbtiTestIntro)
                 }) {
                     Text("Don't know your personality type?")
                         .font(.btBody)
