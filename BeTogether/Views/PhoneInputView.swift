@@ -48,6 +48,40 @@ struct PhoneInputView: View {
                         .padding(.horizontal, 24)
                 }
                 
+                // MARK: - Divider: or continue with
+                HStack(spacing: 12) {
+                    Rectangle()
+                        .frame(height: 0.5)
+                        .foregroundColor(.gray.opacity(0.4))
+                    Text("or continue with")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(.gray)
+                        .fixedSize()
+                    Rectangle()
+                        .frame(height: 0.5)
+                        .foregroundColor(.gray.opacity(0.4))
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 10)
+                
+                // MARK: - Continue with Apple
+                Button(action: {
+                    // TODO: Apple Sign In 연동
+                }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "apple.logo")
+                            .font(.system(size: 18, weight: .semibold))
+                        Text("Continue with Apple")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.black)
+                    .cornerRadius(14)
+                }
+                .padding(.horizontal, 40)
+                
                 Spacer()
                 
                 BTButton(title: "Next", action: {

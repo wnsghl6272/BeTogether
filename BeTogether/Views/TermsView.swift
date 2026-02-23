@@ -6,6 +6,7 @@ struct TermsView: View {
     @State private var termsAgreed: Bool = false
     @State private var privacyAgreed: Bool = false
     @State private var marketingAgreed: Bool = false
+    @State private var isSaving: Bool = false
     
     var allAgreed: Bool {
         return termsAgreed && privacyAgreed
@@ -65,9 +66,36 @@ struct TermsView: View {
                 
                 Spacer()
                 
+                if isSaving {
+                    ProgressView()
+                        .padding(.bottom, 10)
+                }
+                
                 BTButton(title: "Next", action: {
-                    router.navigate(to: .emailInput)
-                }, isDisabled: !allAgreed)
+                    isSaving = true
+                    Task {
+                        do {
+                            let formatter = ISO8601DateFormatter()
+                            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                            let nowString = formatter.string(from: Date())
+                            
+                            try await AuthManager.shared.updateProfile(data: [
+                                "terms_agreed_at": nowString,
+                                "onboarding_step": "emailInput"
+                            ])
+                            await MainActor.run {
+                                isSaving = false
+                                router.navigate(to: .emailInput)
+                            }
+                        } catch {
+                            print("Error saving terms: \(error)")
+                            await MainActor.run {
+                                isSaving = false
+                                router.navigate(to: .emailInput)
+                            }
+                        }
+                    }
+                }, isDisabled: !allAgreed || isSaving)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)
             }

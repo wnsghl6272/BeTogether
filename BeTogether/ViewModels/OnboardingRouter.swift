@@ -77,16 +77,44 @@ class OnboardingRouter: ObservableObject {
         }
     }
     
-    func handleOTPVerified(status: String) {
-        print("handleOTPVerified called with status: \(status)")
+    func handleOTPVerified(status: String, step: String?) {
+        print("handleOTPVerified called with status: \(status), step: \(step ?? "nil")")
         // status could be fetched from `profiles` table
         if status == "approved" {
             self.authState = .approved
         } else if status == "pending_approval" {
             self.authState = .pendingApproval
         } else {
-            print("Calling navigate(to: .notificationPermission) for new user")
-            self.navigate(to: .notificationPermission)
+            if let step = step, !step.isEmpty {
+                restoreOnboardingState(from: step)
+            } else {
+                print("Calling navigate(to: .notificationPermission) for new user")
+                self.navigate(to: .notificationPermission)
+            }
+        }
+    }
+    
+    private func restoreOnboardingState(from step: String) {
+        print("Restoring state to: \(step)")
+        self.popToRoot() // start clean
+        
+        switch step {
+        case "notificationPermission": navigate(to: .notificationPermission)
+        case "locationPermission": navigate(to: .locationPermission)
+        case "terms": navigate(to: .terms)
+        case "emailInput": navigate(to: .emailInput)
+        case "profileSetup": navigate(to: .profileSetup)
+        case "mbtiManualInput": navigate(to: .mbtiManualInput)
+        case "mbtiTestIntro": navigate(to: .mbtiTestIntro)
+        case "mbtiTest": navigate(to: .mbtiTest)
+        case "mbtiResult": navigate(to: .mbtiResult)
+        case "personalityQAIntro": navigate(to: .personalityQAIntro)
+        case "personalityQA": navigate(to: .personalityQA)
+        case "matchingPreference": navigate(to: .matchingPreference)
+        case "contactBlocking": navigate(to: .contactBlocking)
+        case "photoUpload": navigate(to: .photoUpload)
+        default:
+            navigate(to: .notificationPermission)
         }
     }
     
@@ -96,5 +124,32 @@ class OnboardingRouter: ObservableObject {
         self.popToRoot()
         
         userSession.startMockApprovalProcess()
+    }
+    
+    func initializeSession(userSession: UserSessionViewModel) async {
+        do {
+            let session = try await AuthManager.shared.client.auth.session
+            let accessToken = session.accessToken
+            let profileData = await AuthManager.shared.fetchProfileData(accessToken: accessToken)
+            await MainActor.run {
+                if profileData.status == "approved" {
+                    userSession.isLoggedIn = true
+                    self.authState = .approved
+                } else if profileData.status == "pending_approval" {
+                    self.authState = .pendingApproval
+                } else {
+                    self.authState = .onboarding
+                    if let step = profileData.onboardingStep, !step.isEmpty {
+                        self.handleOTPVerified(status: profileData.status, step: profileData.onboardingStep)
+                    }
+                }
+            }
+        } catch {
+            print("No valid session on launch: \(error)")
+            await MainActor.run {
+                self.authState = .unauthenticated
+                userSession.isLoggedIn = false
+            }
+        }
     }
 }

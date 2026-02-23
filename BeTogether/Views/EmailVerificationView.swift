@@ -7,6 +7,7 @@ struct EmailVerificationView: View {
     @State private var otpCode: String = ""
     @State private var timeRemaining: Int = 180
     @State private var timerRunning: Bool = true
+    @State private var isVerifying: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -27,11 +28,11 @@ struct EmailVerificationView: View {
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                 
-                BTTextField(placeholder: "000000", text: $otpCode, keyboardType: .numberPad)
+                BTTextField(placeholder: "Enter code", text: $otpCode, keyboardType: .default)
                     .padding(.horizontal, 40)
                     .onChange(of: otpCode) { oldValue, newValue in
-                        if newValue.count > 6 {
-                            otpCode = String(newValue.prefix(6))
+                        if newValue.count > 8 {
+                            otpCode = String(newValue.prefix(8))
                         }
                     }
                 
@@ -61,18 +62,31 @@ struct EmailVerificationView: View {
                 
                 Spacer()
                 
+                if isVerifying {
+                    ProgressView()
+                        .padding(.bottom, 10)
+                }
+                
                 BTButton(title: "Verify", action: {
+                    isVerifying = true
                     Task {
                         do {
                             let _ = try await AuthManager.shared.verifyEmailOTP(email: email, token: otpCode)
+                            try await AuthManager.shared.updateProfile(data: ["onboarding_step": "profileSetup"])
                             await MainActor.run {
-                                router.handleOTPVerified(status: "success")
+                                isVerifying = false
+                                userSession.email = email
+                                router.navigate(to: .profileSetup)
                             }
                         } catch {
                             print("Email Verification failed: \(error)")
+                            await MainActor.run {
+                                isVerifying = false
+                                router.errorMessage = "Verification failed: \(error.localizedDescription)"
+                            }
                         }
                     }
-                }, isDisabled: otpCode.count != 6)
+                }, isDisabled: otpCode.count < 6 || isVerifying)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)
             }

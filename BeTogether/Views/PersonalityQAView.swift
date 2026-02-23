@@ -96,6 +96,9 @@ struct PersonalityQAView: View {
         )
     ]
     
+    @State private var answers: [[String: String]] = []
+    @State private var isSaving: Bool = false
+    
     var body: some View {
         ZStack {
             Color.white.edgesIgnoringSafeArea(.all)
@@ -131,11 +134,16 @@ struct PersonalityQAView: View {
                     .transition(.opacity)
                     .id("q_\(currentQuestionIndex)") // Force redraw for transition
                 
+                if isSaving {
+                    ProgressView()
+                        .padding()
+                }
+                
                 // Options
                 VStack(spacing: 15) {
                     ForEach(questions[currentQuestionIndex].options.indices, id: \.self) { index in
                         Button(action: {
-                            advanceQuestion()
+                            advanceQuestion(with: questions[currentQuestionIndex].options[index])
                         }) {
                             Text(questions[currentQuestionIndex].options[index])
                                 .font(.btButton)
@@ -149,6 +157,7 @@ struct PersonalityQAView: View {
                                         .stroke(Color.btTeal, lineWidth: 2)
                                 )
                         }
+                        .disabled(isSaving)
                     }
                 }
                 .padding(.horizontal, 40)
@@ -159,14 +168,36 @@ struct PersonalityQAView: View {
         }
     }
     
-    func advanceQuestion() {
+    func advanceQuestion(with answer: String) {
+        answers.append([
+            "category": questions[currentQuestionIndex].category,
+            "question": questions[currentQuestionIndex].question,
+            "answer": answer
+        ])
+        
         if currentQuestionIndex < questions.count - 1 {
             withAnimation {
                 currentQuestionIndex += 1
             }
         } else {
             // Finish
-            router.navigate(to: .matchingPreference)
+            isSaving = true
+            Task {
+                do {
+                    try await AuthManager.shared.updateUserTraits(data: ["answers": answers])
+                    try await AuthManager.shared.updateProfile(data: ["onboarding_step": "matchingPreference"])
+                    await MainActor.run {
+                        isSaving = false
+                        router.navigate(to: .matchingPreference)
+                    }
+                } catch {
+                    print("Error saving QA answers: \(error)")
+                    await MainActor.run {
+                        isSaving = false
+                        router.navigate(to: .matchingPreference)
+                    }
+                }
+            }
         }
     }
 }

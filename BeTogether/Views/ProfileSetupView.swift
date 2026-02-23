@@ -30,6 +30,7 @@ struct ProfileSetupView: View {
     @State private var smoking: String = ""
     @State private var oneLineIntro: String = ""   // New
     @State private var selfIntro: String = ""      // New
+    @State private var isSaving: Bool = false
     
     // Validation
     var isAgeValid: Bool {
@@ -128,13 +129,13 @@ struct ProfileSetupView: View {
                 .foregroundColor(.btTeal)
             
             HStack(spacing: 20) {
-                selectionButton(
+                BTSelectionButton(
                     title: "Female",
                     isSelected: gender == "Female",
                     action: { gender = "Female" }
                 )
                 
-                selectionButton(
+                BTSelectionButton(
                     title: "Male",
                     isSelected: gender == "Male",
                     action: { gender = "Male" }
@@ -222,9 +223,9 @@ struct ProfileSetupView: View {
                 .multilineTextAlignment(.center)
             
             VStack(spacing: 15) {
-                selectionButton(title: "Non-drinker", isSelected: drinking == "Non-drinker") { drinking = "Non-drinker" }
-                selectionButton(title: "Socially", isSelected: drinking == "Socially") { drinking = "Socially" }
-                selectionButton(title: "Reviewer", isSelected: drinking == "Reviewer") { drinking = "Reviewer" }
+                BTSelectionButton(title: "Non-drinker", isSelected: drinking == "Non-drinker") { drinking = "Non-drinker" }
+                BTSelectionButton(title: "Socially", isSelected: drinking == "Socially") { drinking = "Socially" }
+                BTSelectionButton(title: "Reviewer", isSelected: drinking == "Reviewer") { drinking = "Reviewer" }
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 20)
@@ -245,10 +246,10 @@ struct ProfileSetupView: View {
                 .multilineTextAlignment(.center)
             
             VStack(spacing: 15) {
-                selectionButton(title: "Non-smoker", isSelected: smoking == "Non-smoker") { smoking = "Non-smoker" }
-                selectionButton(title: "Smoker", isSelected: smoking == "Smoker") { smoking = "Smoker" }
-                selectionButton(title: "Electronic Cigarette", isSelected: smoking == "Electronic Cigarette") { smoking = "Electronic Cigarette" }
-                selectionButton(title: "Trying to quit", isSelected: smoking == "Trying to quit") { smoking = "Trying to quit" }
+                BTSelectionButton(title: "Non-smoker", isSelected: smoking == "Non-smoker") { smoking = "Non-smoker" }
+                BTSelectionButton(title: "Smoker", isSelected: smoking == "Smoker") { smoking = "Smoker" }
+                BTSelectionButton(title: "Electronic Cigarette", isSelected: smoking == "Electronic Cigarette") { smoking = "Electronic Cigarette" }
+                BTSelectionButton(title: "Trying to quit", isSelected: smoking == "Trying to quit") { smoking = "Trying to quit" }
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 20)
@@ -261,22 +262,7 @@ struct ProfileSetupView: View {
         }
     }
     
-    // Helper View Builder for selection buttons
-    func selectionButton(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.btButton)
-                .foregroundColor(isSelected ? .white : .btTeal)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(isSelected ? Color.btTeal : Color.clear)
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.btTeal, lineWidth: 2)
-                )
-        }
-    }
+    // Helper function removed in favor of BTSelectionButton
     
     var oneLineIntroStep: some View {
         VStack(spacing: 30) {
@@ -311,10 +297,49 @@ struct ProfileSetupView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
                 .padding(.horizontal, 40)
             
+            if isSaving {
+                ProgressView()
+            }
+            
             BTButton(title: "Complete Profile", action: {
                 userSession.selfIntro = selfIntro
-                router.navigate(to: .mbtiManualInput)
-            }, isDisabled: selfIntro.isEmpty)
+                
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd"
+                let dateString = formatter.string(from: birthDate)
+                
+                let profileData: [String: Any] = [
+                    "nickname": nickname,
+                    "birth_date": dateString,
+                    "gender": gender,
+                    "occupation": occupation,
+                    "height": height,
+                    "university": university,
+                    "drinking": drinking,
+                    "smoking": smoking,
+                    "one_line_intro": oneLineIntro,
+                    "self_intro": selfIntro,
+                    "onboarding_step": "mbtiManualInput"
+                ]
+                
+                isSaving = true
+                Task {
+                    do {
+                        try await AuthManager.shared.updateProfile(data: profileData)
+                        await MainActor.run {
+                            isSaving = false
+                            router.navigate(to: .mbtiManualInput)
+                        }
+                    } catch {
+                        print("Error saving profile: \(error)")
+                        await MainActor.run {
+                            isSaving = false
+                            // Should probably show an error alert here
+                            router.navigate(to: .mbtiManualInput) // Fallback navigate? Better to show error.
+                        }
+                    }
+                }
+            }, isDisabled: selfIntro.isEmpty || isSaving)
             .padding(.horizontal, 40)
         }
     }

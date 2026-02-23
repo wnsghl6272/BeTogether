@@ -24,28 +24,52 @@ struct EmailInputView: View {
                     .foregroundColor(.btTeal)
                     .multilineTextAlignment(.center)
                 
+                Text("Please enter a recovery email\nto keep your account safe.")
+                    .font(.btSubheader)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                
                 BTTextField(placeholder: "example@gmail.com", text: $email, keyboardType: .emailAddress)
                     .padding(.horizontal, 40)
                 
-
+                if let errorMessage = router.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                }
                 
                 Spacer()
                 
                 BTButton(title: "Next", action: {
-                    userSession.email = email
-                    if router.isExistingUser {
-                        Task {
-                            do {
-                                try await AuthManager.shared.sendEmailOTP(email: email)
+                    Task {
+                        do {
+                            let exists = try await AuthManager.shared.checkEmailExists(email: email)
+                            
+                            if exists {
                                 await MainActor.run {
-                                    router.navigate(to: .emailVerification(email))
+                                    router.errorMessage = "This email is already in use."
                                 }
-                            } catch {
-                                print("Failed to send email OTP: \(error)")
+                                return
+                            }
+                            
+                            await MainActor.run {
+                                userSession.email = email
+                            }
+                            
+                            try await AuthManager.shared.sendEmailOTP(email: email)
+                            
+                            await MainActor.run {
+                                router.errorMessage = nil
+                                router.navigate(to: .emailVerification(email))
+                            }
+                        } catch {
+                            print("Failed to check email or send OTP: \(error)")
+                            await MainActor.run {
+                                router.errorMessage = "Error: \(error.localizedDescription)"
                             }
                         }
-                    } else {
-                        router.navigate(to: .profileSetup)
                     }
                 }, isDisabled: !isValidEmail)
                 .padding(.horizontal, 40)
