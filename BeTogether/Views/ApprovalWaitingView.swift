@@ -19,11 +19,11 @@ struct ApprovalWaitingView: View {
                         .frame(width: 150, height: 150)
                         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                     
-                    if userSession.isApproved {
+                    if router.authState == .approved {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 80))
                             .foregroundColor(.btTeal)
-                    } else if userSession.approvalRejectionReason != nil {
+                    } else if router.authState == .rejected {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 80))
                             .foregroundColor(.red)
@@ -43,7 +43,7 @@ struct ApprovalWaitingView: View {
                 
                 // Status Text
                 VStack(spacing: 15) {
-                    if userSession.isApproved {
+                    if router.authState == .approved {
                         Text("You're Approved!")
                             .font(.btHeader)
                             .foregroundColor(.btTeal)
@@ -51,11 +51,11 @@ struct ApprovalWaitingView: View {
                             .font(.btSubheader)
                             .foregroundColor(.black)
                             .multilineTextAlignment(.center)
-                    } else if let reason = userSession.approvalRejectionReason {
+                    } else if router.authState == .rejected {
                         Text("Approval Failed")
                             .font(.btHeader)
                             .foregroundColor(.red)
-                        Text(reason)
+                        Text("Your photos did not meet the guidelines.\nPlease try uploading clear headshots.")
                             .font(.btSubheader)
                             .foregroundColor(.black)
                             .multilineTextAlignment(.center)
@@ -74,15 +74,15 @@ struct ApprovalWaitingView: View {
                 Spacer()
                 
                 // Action Button
-                if userSession.isApproved {
+                if router.authState == .approved {
                     BTButton(title: "Start BeTogether") {
                         userSession.isLoggedIn = true 
                         router.authState = .approved
                     }
                     .padding(.horizontal, 40)
                     .padding(.bottom, 50)
-                } else if userSession.approvalRejectionReason != nil {
-                    BTButton(title: "Upload Photos Again") {
+                } else if router.authState == .rejected {
+                    BTButton(title: "Edit My Photo Upload") {
                         router.authState = .onboarding
                         router.navigate(to: .photoUpload)
                     }
@@ -98,10 +98,7 @@ struct ApprovalWaitingView: View {
             }
         }
         .onAppear {
-            if !userSession.isApproved && userSession.approvalRejectionReason == nil {
-                // Ensure the mock process starts if we land here directly (though VM handles it usually)
-                // VM calls it on transition, so we might just wait.
-            }
+            // Can add automatic polling here if needed later
         }
     }
 }

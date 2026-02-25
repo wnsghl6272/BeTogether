@@ -8,12 +8,19 @@ class AuthManager: ObservableObject {
     private(set) var currentAccessToken: String?
 
     private init() {
+        // Create an ephemeral URLSession to avoid iOS Simulator HTTP/2 connection reuse (-1005) bugs.
+        let sessionConfiguration = URLSessionConfiguration.ephemeral
+        let customSession = URLSession(configuration: sessionConfiguration)
+        
         self.client = SupabaseClient(
             supabaseURL: Config.supabaseURL,
             supabaseKey: Config.supabaseAnonKey,
             options: SupabaseClientOptions(
                 auth: SupabaseClientOptions.AuthOptions(
                     emitLocalSessionAsInitialSession: true
+                ),
+                global: SupabaseClientOptions.GlobalOptions(
+                    session: customSession
                 )
             )
         )
@@ -21,80 +28,23 @@ class AuthManager: ObservableObject {
     
     // MARK: - Phone (SMS) Authentication
     
-    /// OTP SMS를 발송합니다.
-    /// URLSession 직접 호출 사용 — Supabase SDK의 signInWithOTP(phone:)은 서버 응답({message:"Otp sent"})을
-    /// 파싱하지 못하고 -1017 에러를 내뱉는 SDK 버그가 있어 우회합니다.
     func sendSMSOTP(phone: String) async throws {
-        guard let url = URL(string: "\(Config.supabaseURL.absoluteString)/auth/v1/otp") else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["phone": phone])
-        
-        // ephemeral 세션 사용 — URLSession.shared는 기존 HTTP/2 연결을 재사용하다가
-        // 시뮬레이터에서 끊어진 연결을 잡아 -1005 에러를 유발합니다.
-        let session = URLSession(configuration: .ephemeral)
-        let (data, response) = try await session.data(for: request)
-        if let httpResponse = response as? HTTPURLResponse,
-           !(200...299).contains(httpResponse.statusCode) {
-            let errStr = String(data: data, encoding: .utf8) ?? "Unknown Error"
-            throw NSError(domain: "AuthAPI", code: httpResponse.statusCode,
-                          userInfo: [NSLocalizedDescriptionKey: "OTP 발송 실패 (\(httpResponse.statusCode)): \(errStr)"])
-        }
+        try await client.auth.signInWithOTP(phone: phone)
     }
     
-    /// SMS OTP를 검증하고 세션을 저장합니다.
-    /// Supabase SDK 내부도 shared URLSession을 사용하여 -1005 에러가 발생하므로 ephemeral URLSession으로 우회합니다.
-    /// 토큰 파싱 후 SDK의 setSession을 동기적으로 await하여 Keychain에 세션을 안전하게 저장합니다.
-    /// 반환값: access_token (프로필 조회에 사용)
     @discardableResult
     func verifySMSOTP(phone: String, token: String) async throws -> String {
-        guard let url = URL(string: "\(Config.supabaseURL.absoluteString)/auth/v1/verify") else {
-            throw NSError(domain: "AuthAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
+        let authResponse = try await client.auth.verifyOTP(
+            phone: phone,
+            token: token,
+            type: .sms
+        )
+        guard let session = authResponse.session else {
+            throw NSError(domain: "AuthAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "No session returned from verifyOTP"])
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: [
-            "type": "sms",
-            "phone": phone,
-            "token": token
-        ])
-        
-        let session = URLSession(configuration: .ephemeral)
-        let (data, response) = try await session.data(for: request)
-        
-        if let httpResponse = response as? HTTPURLResponse,
-           !(200...299).contains(httpResponse.statusCode) {
-            let errStr = String(data: data, encoding: .utf8) ?? "Unknown Error"
-            throw NSError(domain: "AuthAPI", code: httpResponse.statusCode,
-                          userInfo: [NSLocalizedDescriptionKey: "인증 실패 (\(httpResponse.statusCode)): \(errStr)"])
-        }
-        
-        // 200 OK — 토큰 파싱
-        guard !data.isEmpty,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let accessToken = json["access_token"] as? String,
-              let refreshToken = json["refresh_token"] as? String else {
-            throw NSError(domain: "AuthAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "인증은 성공했으나 토큰을 받지 못했습니다."])
-        }
-        
-        // setSession을 백그라운드로 실행 (SDK 내부 User 파싱/재시도 로직이 UI를 잠그므로)
-        self.currentAccessToken = accessToken
-        
-        Task {
-            do {
-                try await self.client.auth.setSession(accessToken: accessToken, refreshToken: refreshToken)
-            } catch {
-                print("setSession warning: \(error)")
-            }
-        }
-        
-        return accessToken
+        self.currentAccessToken = session.accessToken
+        return session.accessToken
     }
-    
     // MARK: - Profile & Traits Query and Update
     
     private func getUserIdFromToken() -> String? {
@@ -110,14 +60,14 @@ class AuthManager: ObservableObject {
     }
     
     /// 인증 완료 후 profiles 테이블에서 유저 status와 onboarding_step을 조회합니다.
-    func fetchProfileData(accessToken: String) async -> (status: String, onboardingStep: String?) {
+    func fetchProfileData(accessToken: String) async -> (status: String, onboardingStep: String?, role: String) {
         do {
             self.currentAccessToken = accessToken
-            guard let sub = getUserIdFromToken() else { return ("onboarding", nil) }
+            guard let sub = getUserIdFromToken() else { return ("onboarding", nil, "user") }
             
             // Supabase REST API로 profiles 테이블 직접 조회
-            let urlStr = "\(Config.supabaseURL.absoluteString)/rest/v1/profiles?id=eq.\(sub)&select=status,onboarding_step"
-            guard let url = URL(string: urlStr) else { return ("onboarding", nil) }
+            let urlStr = "\(Config.supabaseURL.absoluteString)/rest/v1/profiles?id=eq.\(sub)&select=status,onboarding_step,role"
+            guard let url = URL(string: urlStr) else { return ("onboarding", nil, "user") }
             
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
@@ -132,14 +82,15 @@ class AuthManager: ObservableObject {
                let firstRow = rows.first {
                 let status = firstRow["status"] as? String ?? "onboarding"
                 let step = firstRow["onboarding_step"] as? String
-                print("fetchProfileData: status=\(status), step=\(step ?? "nil")")
-                return (status, step)
+                let role = firstRow["role"] as? String ?? "user"
+                print("fetchProfileData: status=\(status), step=\(step ?? "nil"), role=\(role)")
+                return (status, step, role)
             }
             
-            return ("onboarding", nil)
+            return ("onboarding", nil, "user")
         } catch {
             print("fetchProfileData error: \(error)")
-            return ("onboarding", nil)
+            return ("onboarding", nil, "user")
         }
     }
     
@@ -295,17 +246,14 @@ class AuthManager: ObservableObject {
     
     // MARK: - Edge Function: Check User Exists
     func checkUserExists(phone: String) async throws -> Bool {
-        struct CheckPhoneRequest: Codable {
-            let phone: String
-        }
-        struct CheckPhoneResponse: Codable {
+        struct CallResponse: Codable {
             let exists: Bool
         }
         
-        let response: CheckPhoneResponse = try await client.functions.invoke(
+        let response: CallResponse = try await client.functions.invoke(
             "check-user-exists",
             options: FunctionInvokeOptions(
-                body: CheckPhoneRequest(phone: phone)
+                body: ["phone": phone]
             )
         )
         return response.exists
@@ -338,6 +286,89 @@ class AuthManager: ObservableObject {
         }
         
         return false
+    }
+    
+    // MARK: - Photos Management
+    struct UserPhotoRecord: Codable {
+        let user_id: String
+        let image_url: String
+        let sort_order: Int
+        let is_verified: Bool
+    }
+    
+    func uploadUserPhoto(data: Data, path: String) async throws -> String {
+        let fileOptions = FileOptions(cacheControl: "3600", contentType: "image/jpeg", upsert: true)
+        let _ = try await client.storage.from("user_photos").upload(path, data: data, options: fileOptions)
+        let publicURL = try client.storage.from("user_photos").getPublicURL(path: path)
+        return publicURL.absoluteString
+    }
+    
+    func saveUserPhotoRecord(userId: String, imageUrl: String, sortOrder: Int, isVerified: Bool) async throws {
+        let record = UserPhotoRecord(
+            user_id: userId,
+            image_url: imageUrl,
+            sort_order: sortOrder,
+            is_verified: isVerified
+        )
+        
+        let _ = try await client.database
+            .from("user_photos")
+            .insert(record)
+            .execute()
+    }
+    
+    func fetchUserPhotos(userId: String) async throws -> [UserPhotoRecord] {
+        let response: [UserPhotoRecord] = try await client.database
+            .from("user_photos")
+            .select()
+            .eq("user_id", value: userId)
+            .order("sort_order", ascending: true)
+            .execute()
+            .value
+        
+        return response
+    }
+    
+    func deleteAllUserPhotos(userId: String) async throws {
+        let _ = try await client.database
+            .from("user_photos")
+            .delete()
+            .eq("user_id", value: userId)
+            .execute()
+    }
+    
+    // MARK: - Admin Management
+    struct PendingUserProfile: Codable, Identifiable, Hashable {
+        let id: String
+        let phone: String?
+        let nickname: String?
+        let status: String?
+    }
+    
+    func fetchPendingUsers() async throws -> [PendingUserProfile] {
+        let response: [PendingUserProfile] = try await client.database
+            .from("profiles")
+            .select("id, phone, nickname, status")
+            .eq("status", value: "pending_approval")
+            .execute()
+            .value
+        return response
+    }
+    
+    func approveUser(userId: String) async throws {
+        let _ = try await client.database
+            .from("profiles")
+            .update(["status": "approved"])
+            .eq("id", value: userId)
+            .execute()
+    }
+    
+    func rejectUser(userId: String) async throws {
+        let _ = try await client.database
+            .from("profiles")
+            .update(["status": "rejected"])
+            .eq("id", value: userId)
+            .execute()
     }
     
     func signOut() async throws {

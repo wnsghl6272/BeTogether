@@ -87,7 +87,14 @@ struct PhoneInputView: View {
                 BTButton(title: "Next", action: {
                     // Remove the "+" prefix so it matches Supabase's Test Phone Numbers format
                     let sanitizedCountryCode = countryCode.replacingOccurrences(of: "+", with: "")
-                    let fullPhone = "\(sanitizedCountryCode)\(phoneNumber)"
+                    
+                    // Strip leading zeros so "0415..." and "415..." resolve to the same E.164 number
+                    var normalizedPhone = phoneNumber
+                    while normalizedPhone.hasPrefix("0") {
+                        normalizedPhone.removeFirst()
+                    }
+                    
+                    let fullPhone = "\(sanitizedCountryCode)\(normalizedPhone)"
                     Task {
                         await router.checkUserExists(phone: fullPhone, userSession: userSession)
                     }

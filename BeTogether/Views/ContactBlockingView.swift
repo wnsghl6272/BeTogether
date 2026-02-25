@@ -4,8 +4,10 @@ struct ContactBlockingView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
     @EnvironmentObject var router: OnboardingRouter
     @State private var showingContactPicker = false
-        @State private var blockedContacts: [BlockedContact] = []
+    @State private var blockedContacts: [BlockedContact] = []
     @State private var isSaving: Bool = false
+    @State private var errorMessage: String? = nil
+    @State private var showAlert: Bool = false
     
     var body: some View {
         ZStack {
@@ -119,10 +121,11 @@ struct ContactBlockingView: View {
                                     router.navigate(to: .photoUpload)
                                 }
                             } catch {
-                                print("Error updating onboarding step: \(error)")
+                                print("Error updating onboarding step or saving contacts: \(error)")
                                 await MainActor.run {
                                     isSaving = false
-                                    router.navigate(to: .photoUpload)
+                                    errorMessage = error.localizedDescription
+                                    showAlert = true
                                 }
                             }
                         }
@@ -132,6 +135,9 @@ struct ContactBlockingView: View {
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)
             }
+        }
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("Error"), message: Text(errorMessage ?? "An unknown error occurred."), dismissButton: .default(Text("OK")))
         }
     }
 }

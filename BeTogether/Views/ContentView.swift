@@ -22,7 +22,7 @@ struct ContentView: View {
                 if userSession.isLoggedIn || router.authState == .approved {
                     MainTabView()
                         .transition(.opacity)
-                } else if router.authState == .pendingApproval {
+                } else if router.authState == .pendingApproval || router.authState == .rejected {
                     ApprovalWaitingView()
                         .transition(.opacity)
                 } else {

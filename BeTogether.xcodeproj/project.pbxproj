@@ -45,6 +45,7 @@
 		69435FB32F4C745C002A6F5D /* RangeSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB02F4C745C002A6F5D /* RangeSlider.swift */; };
 		69435FB62F4C746A002A6F5D /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB42F4C746A002A6F5D /* PermissionManager.swift */; };
 		69435FB72F4C746A002A6F5D /* VisionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB52F4C746A002A6F5D /* VisionManager.swift */; };
+		7F734CF3C08B242A8E8E708B /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08CDCAFE5ABDDED56503D591 /* AdminDashboardView.swift */; };
 		B001 /* BeTogetherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001 /* BeTogetherApp.swift */; };
 		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002 /* ContentView.swift */; };
 		B003 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003 /* SplashView.swift */; };
@@ -82,6 +83,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		08CDCAFE5ABDDED56503D591 /* AdminDashboardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdminDashboardView.swift; sourceTree = "<group>"; };
 		0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailVerificationView.swift; sourceTree = "<group>"; };
 		3489DB823DDEC810AD4A757B /* Config.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		69435F402F3F3593002A6F5D /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
@@ -283,6 +285,7 @@
 				A032 /* NotificationView.swift */,
 				A033 /* ProfileMainView.swift */,
 				0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */,
+				08CDCAFE5ABDDED56503D591 /* AdminDashboardView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -479,6 +482,7 @@
 				E9EA5CEF9123CE5898FF66BE /* Config.swift in Sources */,
 				51C828FCDDDD720D244511C3 /* AuthManager.swift in Sources */,
 				021A35D7F76B7604C42D1D44 /* EmailVerificationView.swift in Sources */,
+				7F734CF3C08B242A8E8E708B /* AdminDashboardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -614,6 +618,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to recommend compatible matches in your area.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -642,6 +647,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We use your location to recommend compatible matches in your area.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

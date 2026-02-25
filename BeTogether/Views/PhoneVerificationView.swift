@@ -86,7 +86,8 @@ struct PhoneVerificationView: View {
                             // OTP 인증 성공 → DB에서 profiles.status 조회
                             let profileData = await AuthManager.shared.fetchProfileData(accessToken: accessToken)
                             await MainActor.run {
-                                router.handleOTPVerified(status: profileData.status, step: profileData.onboardingStep)
+                                userSession.role = profileData.role
+                                router.handleOTPVerified(status: profileData.status, step: profileData.onboardingStep, role: profileData.role)
                             }
                         } catch {
                             print("Verification failed: \(error)")

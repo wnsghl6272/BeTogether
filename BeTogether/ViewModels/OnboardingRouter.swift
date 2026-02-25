@@ -6,6 +6,7 @@ enum AuthState: Equatable {
     case onboarding
     case pendingApproval
     case approved
+    case rejected
 }
 
 enum OnboardingDestination: Hashable {
@@ -77,13 +78,14 @@ class OnboardingRouter: ObservableObject {
         }
     }
     
-    func handleOTPVerified(status: String, step: String?) {
-        print("handleOTPVerified called with status: \(status), step: \(step ?? "nil")")
+    func handleOTPVerified(status: String, step: String?, role: String = "user") {
+        print("handleOTPVerified called with status: \(status), step: \(step ?? "nil"), role: \(role)")
         // status could be fetched from `profiles` table
-        if status == "approved" {
+        if status == "approved" || role == "admin" {
             self.authState = .approved
         } else if status == "pending_approval" {
-            self.authState = .pendingApproval
+        } else if status == "rejected" {
+            self.authState = .rejected
         } else {
             if let step = step, !step.isEmpty {
                 restoreOnboardingState(from: step)
@@ -132,11 +134,14 @@ class OnboardingRouter: ObservableObject {
             let accessToken = session.accessToken
             let profileData = await AuthManager.shared.fetchProfileData(accessToken: accessToken)
             await MainActor.run {
+                userSession.role = profileData.role
                 if profileData.status == "approved" {
                     userSession.isLoggedIn = true
                     self.authState = .approved
                 } else if profileData.status == "pending_approval" {
                     self.authState = .pendingApproval
+                } else if profileData.status == "rejected" {
+                    self.authState = .rejected
                 } else {
                     self.authState = .onboarding
                     if let step = profileData.onboardingStep, !step.isEmpty {

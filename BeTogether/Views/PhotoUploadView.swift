@@ -1,19 +1,33 @@
 import SwiftUI
 import PhotosUI
 
+struct PhotoSlot: Identifiable, Equatable {
+    let id: Int
+    var image: UIImage? = nil
+    var pickerItem: PhotosPickerItem? = nil
+}
+
 struct PhotoUploadView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
     @EnvironmentObject var router: OnboardingRouter
     
-    @State private var photo1: UIImage? = nil
-    @State private var photo2: UIImage? = nil
-    
-    @State private var selectedItem1: PhotosPickerItem? = nil
-    @State private var selectedItem2: PhotosPickerItem? = nil
+    @State private var slots: [PhotoSlot] = (0..<6).map { PhotoSlot(id: $0) }
     
     @State private var isSaving: Bool = false
+    @State private var isLoadingPhotos: Bool = false
     @State private var alertMessage: String? = nil
     @State private var showAlert: Bool = false
+    
+    let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
+    
+    var canSubmit: Bool {
+        // Must have at least the first two photos
+        return slots[0].image != nil && slots[1].image != nil
+    }
     
     var body: some View {
         ZStack {
@@ -25,64 +39,77 @@ struct PhotoUploadView: View {
                     Text("Profile Photos")
                         .font(.btHeader)
                         .foregroundColor(.black)
-                    Text("Upload 2 clear photos of yourself.")
+                    Text("Upload at least 2 clear photos of yourself.")
                         .font(.btSubheader)
                         .foregroundColor(.gray)
                 }
                 .padding(.top, 50)
                 
-                // Photo Slots
-                HStack(spacing: 20) {
-                    // Slot 1
-                    PhotosPicker(selection: $selectedItem1, matching: .images, photoLibrary: .shared()) {
+                // Photo Slots (3x2 Grid)
+                LazyVGrid(columns: columns, spacing: 15) {
+                    ForEach($slots) { $slot in
                         ZStack {
-                            RoundedRectangle(cornerRadius: 15)
-                                .fill(Color.white)
-                                .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                            PhotosPicker(selection: $slot.pickerItem, matching: .images, photoLibrary: .shared()) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .fill(slot.id < 2 ? Color.btTeal.opacity(0.1) : Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .stroke(slot.id < 2 ? Color.btTeal : Color.gray.opacity(0.3), lineWidth: slot.id < 2 ? 2 : 1)
+                                        )
+                                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                                    
+                                    if let image = slot.image {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                                            .clipped()
+                                            .clipShape(RoundedRectangle(cornerRadius: 15))
+                                    } else {
+                                        VStack(spacing: 5) {
+                                            Image(systemName: "plus")
+                                                .font(.system(size: 24, weight: slot.id < 2 ? .bold : .regular))
+                                                .foregroundColor(slot.id < 2 ? .btTeal : .gray)
+                                            
+                                            if slot.id < 2 {
+                                                Text("Required")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.btTeal)
+                                            }
+                                        }
+                                    }
+                                }
+                                .aspectRatio(3/4, contentMode: .fit)
+                            }
+                            .onChange(of: slot.pickerItem) { _, newItem in
+                                processImageSelection(newItem, index: slot.id)
+                            }
                             
-                            if let image = photo1 {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 140, height: 180)
-                                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                            } else {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 30))
-                                    .foregroundColor(.gray)
+                            // Delete Button (Layered above PhotosPicker to consume tap)
+                            if slot.image != nil {
+                                VStack {
+                                    HStack {
+                                        Spacer()
+                                        Button(action: {
+                                            // Reset the current slot
+                                            slots[slot.id].image = nil
+                                            slots[slot.id].pickerItem = nil
+                                        }) {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.system(size: 22))
+                                                .foregroundColor(.white)
+                                                .background(Circle().fill(Color.black.opacity(0.5)))
+                                        }
+                                        .padding(8)
+                                    }
+                                    Spacer()
+                                }
                             }
                         }
-                        .frame(width: 140, height: 180)
-                    }
-                    .onChange(of: selectedItem1) { _, newItem in
-                        processImageSelection(newItem, slot: 1)
-                    }
-                    
-                    // Slot 2
-                    PhotosPicker(selection: $selectedItem2, matching: .images, photoLibrary: .shared()) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 15)
-                                .fill(Color.white)
-                                .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
-                            
-                            if let image = photo2 {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 140, height: 180)
-                                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                            } else {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 30))
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .frame(width: 140, height: 180)
-                    }
-                    .onChange(of: selectedItem2) { _, newItem in
-                        processImageSelection(newItem, slot: 2)
                     }
                 }
+                .padding(.horizontal, 20)
                 
                 Spacer()
                 
@@ -104,30 +131,49 @@ struct PhotoUploadView: View {
                 // Submit Button
                 BTButton(title: "Submit for Review", action: {
                     submitPhotos()
-                }, isDisabled: photo1 == nil || photo2 == nil || isSaving)
+                }, isDisabled: !canSubmit || isSaving)
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)
             }
+            
+            if isSaving || isLoadingPhotos {
+                Color.black.opacity(0.4).edgesIgnoringSafeArea(.all)
+                ProgressView(isSaving ? "Uploading Photos..." : "Loading Your Photos...")
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .shadow(radius: 10)
+            }
+        }
+        .task {
+            await loadExistingPhotos()
         }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Photo Required"), message: Text(alertMessage ?? ""), dismissButton: .default(Text("OK")))
         }
     }
     
-    private func processImageSelection(_ item: PhotosPickerItem?, slot: Int) {
+    private func processImageSelection(_ item: PhotosPickerItem?, index: Int) {
         guard let item = item else { return }
         Task {
             if let data = try? await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
                 
-                let hasFace = await VisionManager.shared.detectSingleFace(in: image)
+                let hasFace: Bool
+                if index < 2 {
+                    hasFace = await VisionManager.shared.detectSingleFace(in: image)
+                } else {
+                    // Only the first 2 slots require a face
+                    hasFace = true
+                }
+                
                 await MainActor.run {
                     if hasFace {
-                        if slot == 1 { photo1 = image } else { photo2 = image }
+                        slots[index].image = image
                     } else {
-                        alertMessage = "We couldn't detect exactly one clear face. Please try another photo."
+                        alertMessage = "We couldn't detect exactly one clear face for the required photo. Please try another one."
                         showAlert = true
-                        if slot == 1 { selectedItem1 = nil } else { selectedItem2 = nil }
+                        slots[index].pickerItem = nil
                     }
                 }
             }
@@ -138,27 +184,103 @@ struct PhotoUploadView: View {
         isSaving = true
         Task {
             do {
-                // Here we would upload photos to Supabase Storage
-                // let url1 = try await AuthManager.shared.uploadPhoto(photo1!)
-                // let url2 = try await AuthManager.shared.uploadPhoto(photo2!)
-                // then append URLs to profile data
+                guard let session = try? await AuthManager.shared.client.auth.session else {
+                    throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not logged in"])
+                }
+                // Convert to lowercase since Postgres auth.uid()::text provides a lowercase UUID string,
+                // and the Storage folder RLS policy uses an exact text match.
+                let userId = session.user.id.uuidString.lowercased()
                 
+                // 0. Remove existing photos from DB to overwrite previous submission
+                try await AuthManager.shared.deleteAllUserPhotos(userId: userId)
+                
+                // 1. Process and upload each photo
+                for (index, slot) in slots.enumerated() {
+                    if let image = slot.image {
+                        // Compress and resize image to max 1080px to save storage and CDN bandwidth
+                        let maxSize: CGFloat = 1080.0
+                        let scale = min(maxSize/image.size.width, maxSize/image.size.height)
+                        let newSize = image.size.width > maxSize || image.size.height > maxSize
+                                    ? CGSize(width: image.size.width * scale, height: image.size.height * scale)
+                                    : image.size
+                        
+                        let format = UIGraphicsImageRendererFormat()
+                        format.scale = 1 // Use 1 to rely on pixel size, not screen scale
+                        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
+                        let resizedImage = renderer.image { _ in
+                            image.draw(in: CGRect(origin: .zero, size: newSize))
+                        }
+                        
+                        guard let imageData = resizedImage.jpegData(compressionQuality: 0.8) else {
+                            print("Failed to compress image at slot \(index)")
+                            continue
+                        }
+                        
+                        // Upload to Storage
+                        let filename = UUID().uuidString
+                        let path = "\(userId)/\(filename).jpg"
+                        
+                        let publicUrl = try await AuthManager.shared.uploadUserPhoto(data: imageData, path: path)
+                        
+                        // Insert into DB
+                        try await AuthManager.shared.saveUserPhotoRecord(
+                            userId: userId,
+                            imageUrl: publicUrl,
+                            sortOrder: index,
+                            isVerified: index < 2 // First 2 required faces are considered verified for now
+                        )
+                    }
+                }
+                
+                // 2. Mark profile as pending_approval
                 try await AuthManager.shared.updateProfile(data: [
                     "status": "pending_approval",
-                    "onboarding_step": ""
+                    "onboarding_step": "" // clear onboarding step to mark as finished
                 ])
+                
                 await MainActor.run {
                     isSaving = false
                     router.finishOnboarding(userSession: userSession)
                 }
             } catch {
-                print("Error submitting for review: \(error)")
+                print("Error uploading photos or submitting for review: \(error)")
                 await MainActor.run {
                     isSaving = false
-                    router.finishOnboarding(userSession: userSession)
+                    alertMessage = "Failed to upload photos. Please try again."
+                    showAlert = true
                 }
             }
         }
+    }
+    
+    private func loadExistingPhotos() async {
+        guard let session = try? await AuthManager.shared.client.auth.session else { return }
+        let userId = session.user.id.uuidString.lowercased()
+        
+        await MainActor.run { isLoadingPhotos = true }
+        
+        do {
+            let existingPhotos = try await AuthManager.shared.fetchUserPhotos(userId: userId)
+            
+            for photo in existingPhotos {
+                if photo.sort_order >= 0 && photo.sort_order < 6, let url = URL(string: photo.image_url) {
+                    do {
+                        let (data, _) = try await URLSession.shared.data(from: url)
+                        if let image = UIImage(data: data) {
+                            await MainActor.run {
+                                slots[photo.sort_order].image = image
+                            }
+                        }
+                    } catch {
+                        print("Failed to download image at \(photo.image_url): \(error)")
+                    }
+                }
+            }
+        } catch {
+            print("Failed to fetch existing photos records: \(error)")
+        }
+        
+        await MainActor.run { isLoadingPhotos = false }
     }
 }
 

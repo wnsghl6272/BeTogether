@@ -1,5 +1,5 @@
 import Foundation
-import Vision
+@preconcurrency import Vision
 import UIKit
 
 class VisionManager {
@@ -10,23 +10,49 @@ class VisionManager {
         guard let cgImage = image.cgImage else { return false }
         
         return await withCheckedContinuation { continuation in
-            let request = VNDetectFaceRectanglesRequest { request, error in
-                if let error = error {
-                    print("Face detection error: \(error)")
-                    continuation.resume(returning: false)
-                    return
-                }
-                let results = request.results as? [VNFaceObservation] ?? []
-                // We want exactly 1 face for a good profile picture
-                continuation.resume(returning: results.count == 1)
-            }
+            let lock = NSLock()
+            var hasResumed = false
             
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            do {
-                try handler.perform([request])
-            } catch {
-                print("Failed to perform face detection: \(error)")
-                continuation.resume(returning: false)
+            // Perform face detection in a background queue since `perform` blocks
+            DispatchQueue.global(qos: .userInitiated).async {
+                let request = VNDetectFaceRectanglesRequest { request, error in
+                    lock.lock()
+                    guard !hasResumed else {
+                        lock.unlock()
+                        return
+                    }
+                    hasResumed = true
+                    lock.unlock()
+                    
+                    if let error = error {
+                        print("Face detection error: \(error)")
+                        continuation.resume(returning: false)
+                        return
+                    }
+                    let results = request.results as? [VNFaceObservation] ?? []
+                    continuation.resume(returning: results.count == 1)
+                }
+                
+                // Fix for iOS Simulator "Could not create inference context" error
+                #if targetEnvironment(simulator)
+                // Suppress iOS 17 deprecation warning while retaining the simulator fix for iOS 16 fallback testing
+                request.perform( #selector(setter: VNDetectFaceRectanglesRequest.usesCPUOnly), with: true)
+                #endif
+                
+                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+                do {
+                    try handler.perform([request])
+                } catch {
+                    print("Failed to perform face detection: \(error)")
+                    lock.lock()
+                    if !hasResumed {
+                        hasResumed = true
+                        lock.unlock()
+                        continuation.resume(returning: false)
+                    } else {
+                        lock.unlock()
+                    }
+                }
             }
         }
     }
