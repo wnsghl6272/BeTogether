@@ -4,7 +4,10 @@ struct ContactBlockingView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
     @EnvironmentObject var router: OnboardingRouter
     @State private var showingContactPicker = false
-    @State private var blockedContacts: [String] = [] // Mock data for now
+    @State private var blockedContacts: [BlockedContact] = []
+    @State private var isSaving: Bool = false
+    @State private var errorMessage: String? = nil
+    @State private var showAlert: Bool = false
     
     var body: some View {
         ZStack {
@@ -31,7 +34,7 @@ struct ContactBlockingView: View {
                         .padding(.horizontal, 40)
                 }
                 
-                // Blocked List Mock
+                // Blocked List
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
                         if blockedContacts.isEmpty {
@@ -41,14 +44,19 @@ struct ContactBlockingView: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.top, 20)
                         } else {
-                            ForEach(blockedContacts, id: \.self) { contact in
+                            ForEach(blockedContacts, id: \.id) { contact in
                                 HStack {
-                                    Text(contact)
-                                        .font(.btBody)
-                                        .foregroundColor(.black)
+                                    VStack(alignment: .leading) {
+                                        Text(contact.name)
+                                            .font(.btBody)
+                                            .foregroundColor(.black)
+                                        Text(contact.phoneNumber)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
                                     Spacer()
                                     Button(action: {
-                                        blockedContacts.removeAll { $0 == contact }
+                                        blockedContacts.removeAll { $0.id == contact.id }
                                     }) {
                                         Image(systemName: "xmark.circle.fill")
                                             .foregroundColor(.gray)
@@ -67,9 +75,7 @@ struct ContactBlockingView: View {
                 // Buttons
                 VStack(spacing: 15) {
                     Button(action: {
-                        // In a real app, this would open CNContactPickerViewController
-                        // For now, we'll just add a mock contact
-                        blockedContacts.append("Mock Contact \(blockedContacts.count + 1)")
+                        showingContactPicker = true
                     }) {
                         HStack {
                             Image(systemName: "person.crop.circle.badge.plus")
@@ -86,6 +92,9 @@ struct ContactBlockingView: View {
                                 .stroke(Color.btTeal, lineWidth: 1)
                         )
                     }
+                    .sheet(isPresented: $showingContactPicker) {
+                        ContactPicker(selectedContacts: $blockedContacts)
+                    }
                     
                     Text("We securely hash phone numbers using SHA-256.\nBeTogether never stores your contacts.")
                         .font(.caption)
@@ -95,13 +104,40 @@ struct ContactBlockingView: View {
                     
                     Spacer().frame(height: 10)
                     
-                    BTButton(title: "Complete & Start") {
-                        router.navigate(to: .photoUpload)
+                    if isSaving {
+                        ProgressView()
+                            .padding(.bottom, 10)
                     }
+                    
+                    BTButton(title: "Complete & Start") {
+                        isSaving = true
+                        Task {
+                            do {
+                                let hashes = blockedContacts.map { $0.hashedNumber }.filter { !$0.isEmpty }
+                                try await AuthManager.shared.saveBlockedContacts(hashes: hashes)
+                                try await AuthManager.shared.updateProfile(data: ["onboarding_step": "photoUpload"])
+                                await MainActor.run {
+                                    isSaving = false
+                                    router.navigate(to: .photoUpload)
+                                }
+                            } catch {
+                                print("Error updating onboarding step or saving contacts: \(error)")
+                                await MainActor.run {
+                                    isSaving = false
+                                    errorMessage = error.localizedDescription
+                                    showAlert = true
+                                }
+                            }
+                        }
+                    }
+                    .disabled(isSaving)
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)
             }
+        }
+        .alert(isPresented: $showAlert) {
+            Alert(title: Text("Error"), message: Text(errorMessage ?? "An unknown error occurred."), dismissButton: .default(Text("OK")))
         }
     }
 }

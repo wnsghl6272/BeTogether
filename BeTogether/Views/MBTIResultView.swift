@@ -3,6 +3,7 @@ import SwiftUI
 struct MBTIResultView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
     @EnvironmentObject var router: OnboardingRouter
+    @State private var isSaving: Bool = false
     
     // Mock Data for MBTI Types and Animals
     let mbtiData: [String: (animal: String, title: String, desc: String, tags: [String])] = [
@@ -176,9 +177,28 @@ struct MBTIResultView: View {
                             )
                     }
                     
+                    if isSaving {
+                        ProgressView()
+                    }
+                    
                     Button(action: {
-                        // Continue to Personality Q&A
-                        router.navigate(to: .personalityQAIntro)
+                        isSaving = true
+                        Task {
+                            do {
+                                try await AuthManager.shared.updateUserTraits(data: ["mbti": userSession.mbtiResult])
+                                try await AuthManager.shared.updateProfile(data: ["onboarding_step": "personalityQAIntro"])
+                                await MainActor.run {
+                                    isSaving = false
+                                    router.navigate(to: .personalityQAIntro)
+                                }
+                            } catch {
+                                print("Error saving MBTI result: \(error)")
+                                await MainActor.run {
+                                    isSaving = false
+                                    router.navigate(to: .personalityQAIntro)
+                                }
+                            }
+                        }
                     }) {
                         Text("Continue Registration")
                             .font(.btButton)
@@ -188,6 +208,7 @@ struct MBTIResultView: View {
                             .background(Color.purple) // User requested Purple
                             .cornerRadius(12)
                     }
+                    .disabled(isSaving)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 50)

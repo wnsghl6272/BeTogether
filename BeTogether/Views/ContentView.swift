@@ -10,21 +10,23 @@ struct ContentView: View {
             if showSplash {
                 SplashView()
                     .transition(.opacity)
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                            withAnimation {
-                                showSplash = false
-                            }
+                    .task {
+                        await router.initializeSession(userSession: userSession)
+                        // Ensure splash shows for at least 1.5 seconds for branding
+                        try? await Task.sleep(nanoseconds: 1_500_000_000)
+                        withAnimation {
+                            showSplash = false
                         }
                     }
             } else {
                 if userSession.isLoggedIn || router.authState == .approved {
                     MainTabView()
                         .transition(.opacity)
-                } else if router.authState == .pendingApproval {
+                } else if router.authState == .pendingApproval || router.authState == .rejected {
                     ApprovalWaitingView()
                         .transition(.opacity)
                 } else {
+
                     NavigationStack(path: $router.path) {
                         LandingView()
                             .navigationDestination(for: OnboardingDestination.self) { destination in

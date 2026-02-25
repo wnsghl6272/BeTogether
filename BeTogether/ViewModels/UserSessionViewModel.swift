@@ -3,6 +3,7 @@ import Combine
 
 class UserSessionViewModel: ObservableObject {
     @Published var isLoggedIn: Bool = false
+    @Published var role: String = "user"
     @Published var isOnboardingComplete: Bool = false
     @Published var currentOnboardingStep: OnboardingStep = .landing
     

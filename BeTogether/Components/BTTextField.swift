@@ -23,5 +23,7 @@ struct BTTextField: View {
         )
         .keyboardType(keyboardType)
         .font(.btBody)
+        .textInputAutocapitalization(keyboardType == .emailAddress ? .never : .sentences)
+        .autocorrectionDisabled(keyboardType == .emailAddress)
     }
 }

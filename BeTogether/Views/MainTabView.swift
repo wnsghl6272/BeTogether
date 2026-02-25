@@ -46,6 +46,16 @@ struct MainTabView: View {
                     Text("Profile")
                 }
                 .tag(4)
+                
+            // Tab 6: Admin (Hidden)
+            if userSession.role == "admin" {
+                AdminDashboardView()
+                    .tabItem {
+                        Image(systemName: "shield.checkerboard")
+                        Text("Admin")
+                    }
+                    .tag(5)
+            }
         }
         .accentColor(.btTeal)
     }

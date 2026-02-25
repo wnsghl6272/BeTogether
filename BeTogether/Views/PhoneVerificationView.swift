@@ -82,10 +82,12 @@ struct PhoneVerificationView: View {
                     router.errorMessage = nil
                     Task {
                         do {
-                            try await AuthManager.shared.verifySMSOTP(phone: phone, token: otpCode)
-                            // SDK가 세션(Keychain)을 자동 저장하므로 바로 다음 화면으로 이동
+                            let accessToken = try await AuthManager.shared.verifySMSOTP(phone: phone, token: otpCode)
+                            // OTP 인증 성공 → DB에서 profiles.status 조회
+                            let profileData = await AuthManager.shared.fetchProfileData(accessToken: accessToken)
                             await MainActor.run {
-                                router.handleOTPVerified(status: "success")
+                                userSession.role = profileData.role
+                                router.handleOTPVerified(status: profileData.status, step: profileData.onboardingStep, role: profileData.role)
                             }
                         } catch {
                             print("Verification failed: \(error)")

@@ -10,6 +10,7 @@ struct MatchingPreferenceView: View {
     @State private var maxDistance: Double = 10
     @State private var filterSmoking: Bool = false
     @State private var filterDrinking: Bool = false
+    @State private var isSaving: Bool = false
     
     // MBTI Filter State
     let mbtiTypes = [
@@ -45,9 +46,9 @@ struct MatchingPreferenceView: View {
                                 .foregroundColor(.gray)
                             
                             HStack(spacing: 10) {
-                                preferenceButton("Female", selection: $preferredGender)
-                                preferenceButton("Male", selection: $preferredGender)
-                                preferenceButton("Any", selection: $preferredGender)
+                                BTToggleButton(title: "Female", selection: $preferredGender)
+                                BTToggleButton(title: "Male", selection: $preferredGender)
+                                BTToggleButton(title: "Any", selection: $preferredGender)
                             }
                         }
                         
@@ -130,10 +131,43 @@ struct MatchingPreferenceView: View {
                         
                         Spacer(minLength: 40)
                         
+                        if isSaving {
+                            ProgressView()
+                                .padding(.bottom, 10)
+                        }
+                        
                         BTButton(title: "Save & Continue") {
                             savePreferences()
-                            router.navigate(to: .contactBlocking)
+                            isSaving = true
+                            
+                            let preferences: [String: Any] = [
+                                "preferred_gender": preferredGender,
+                                "min_age": Int(ageRange.lowerBound),
+                                "max_age": Int(ageRange.upperBound),
+                                "max_distance": Int(maxDistance),
+                                "filter_smoking": filterSmoking,
+                                "filter_drinking": filterDrinking,
+                                "filter_mbti": Array(selectedMBTI)
+                            ]
+                            
+                            Task {
+                                do {
+                                    try await AuthManager.shared.updateUserTraits(data: ["matching_preferences": preferences])
+                                    try await AuthManager.shared.updateProfile(data: ["onboarding_step": "contactBlocking"])
+                                    await MainActor.run {
+                                        isSaving = false
+                                        router.navigate(to: .contactBlocking)
+                                    }
+                                } catch {
+                                    print("Error saving preferences: \(error)")
+                                    await MainActor.run {
+                                        isSaving = false
+                                        router.navigate(to: .contactBlocking)
+                                    }
+                                }
+                            }
                         }
+                        .disabled(isSaving)
                         .padding(.bottom, 20)
                     }
                     .padding(.horizontal, 20)
@@ -144,17 +178,7 @@ struct MatchingPreferenceView: View {
         }
     }
     
-    func preferenceButton(_ title: String, selection: Binding<String>) -> some View {
-        Button(action: { selection.wrappedValue = title }) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(selection.wrappedValue == title ? .white : .gray)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(selection.wrappedValue == title ? Color.btTeal : Color.gray.opacity(0.1))
-                .cornerRadius(8)
-        }
-    }
+    // Replaced inline helper with BTToggleButton
     
     func savePreferences() {
         userSession.preferredGender = preferredGender
@@ -164,72 +188,6 @@ struct MatchingPreferenceView: View {
         userSession.filterSmoking = filterSmoking
         userSession.filterDrinking = filterDrinking
         userSession.filterMBTI = Array(selectedMBTI)
-    }
-}
-
-// Simple Range Slider Helper
-struct RangeSlider: View {
-    @Binding var range: ClosedRange<Double>
-    let bounds: ClosedRange<Double>
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: 4)
-                
-                Rectangle()
-                    .fill(Color.btTeal)
-                    .frame(width: width(for: range, in: geometry), height: 4)
-                    .offset(x: offset(for: range.lowerBound, in: geometry))
-                
-                Circle()
-                    .fill(Color.white)
-                    .shadow(radius: 2)
-                    .frame(width: 20, height: 20)
-                    .offset(x: offset(for: range.lowerBound, in: geometry))
-                    .gesture(
-                        DragGesture().onChanged { value in
-                            let location = value.location.x
-                            let percentage = location / geometry.size.width
-                            let newValue = bounds.lowerBound + (bounds.upperBound - bounds.lowerBound) * Double(percentage)
-                            if newValue < range.upperBound - 1 && newValue >= bounds.lowerBound {
-                                range = newValue...range.upperBound
-                            }
-                        }
-                    )
-                
-                Circle()
-                    .fill(Color.white)
-                    .shadow(radius: 2)
-                    .frame(width: 20, height: 20)
-                    .offset(x: offset(for: range.upperBound, in: geometry) - 20) // -20 to center on end
-                    .gesture(
-                        DragGesture().onChanged { value in
-                            let location = value.location.x
-                            let percentage = location / geometry.size.width
-                            let newValue = bounds.lowerBound + (bounds.upperBound - bounds.lowerBound) * Double(percentage)
-                            if newValue > range.lowerBound + 1 && newValue <= bounds.upperBound {
-                                range = range.lowerBound...newValue
-                            }
-                        }
-                    )
-            }
-            .frame(height: 20)
-        }
-    }
-    
-    func width(for range: ClosedRange<Double>, in geometry: GeometryProxy) -> CGFloat {
-        let total = bounds.upperBound - bounds.lowerBound
-        let covered = range.upperBound - range.lowerBound
-        return geometry.size.width * CGFloat(covered / total)
-    }
-    
-    func offset(for value: Double, in geometry: GeometryProxy) -> CGFloat {
-        let total = bounds.upperBound - bounds.lowerBound
-        let current = value - bounds.lowerBound
-        return geometry.size.width * CGFloat(current / total)
     }
 }
 

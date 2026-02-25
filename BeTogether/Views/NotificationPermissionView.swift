@@ -3,6 +3,7 @@ import SwiftUI
 struct NotificationPermissionView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
     @EnvironmentObject var router: OnboardingRouter
+    @State private var isSaving: Bool = false
     
     var body: some View {
         ZStack {
@@ -36,20 +37,47 @@ struct NotificationPermissionView: View {
                 Spacer()
                 
                 VStack(spacing: 16) {
-                    BTButton(title: "Allow Notifications") {
-                        // In a real app, request permission here
-                        // UNUserNotificationCenter.current().requestAuthorization...
-                        router.navigate(to: .locationPermission)
+                    if isSaving {
+                        ProgressView()
+                            .padding(.bottom, 5)
                     }
                     
+                    BTButton(title: "Allow Notifications") {
+                        Task {
+                            await PermissionManager.shared.requestNotificationPermission()
+                            continueToNextStep()
+                        }
+                    }
+                    .disabled(isSaving)
+                    
                     Button("Maybe Later") {
-                        router.navigate(to: .locationPermission)
+                        continueToNextStep()
                     }
                     .font(.body)
                     .foregroundColor(.gray)
+                    .disabled(isSaving)
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 50)
+            }
+        }
+    }
+    
+    private func continueToNextStep() {
+        isSaving = true
+        Task {
+            do {
+                try await AuthManager.shared.updateProfile(data: ["onboarding_step": "locationPermission"])
+                await MainActor.run {
+                    isSaving = false
+                    router.navigate(to: .locationPermission)
+                }
+            } catch {
+                print("Error saving step: \(error)")
+                await MainActor.run {
+                    isSaving = false
+                    router.navigate(to: .locationPermission)
+                }
             }
         }
     }
