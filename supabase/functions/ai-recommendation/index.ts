@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1"
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1"
+import OpenAI from "npm:openai@4.28.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +8,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -22,61 +21,85 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 1. Get current user's MBTI & Profile
+    // 1. Get current user's profile
     const { data: currentUser, error: userError } = await supabaseClient
       .from('profiles')
-      .select('*, user_traits(*)')
+      .select('*')
       .eq('id', userId)
       .single()
 
-    if (userError || !currentUser) throw new Error('User not found')
-    const currentMbti = currentUser.user_traits[0]?.mbti
+    if (userError || !currentUser) throw new Error('User not found: ' + JSON.stringify(userError))
 
-    // 2. Fetch all other users (for MVP, we fetch all. In production, PostGIS + age filters would apply first)
-    const { data: candidates, error: candidatesError } = await supabaseClient
+    // 2. Get current user's MBTI from user_traits
+    const { data: currentTraitRows } = await supabaseClient
+      .from('user_traits')
+      .select('mbti')
+      .eq('user_id', userId)
+      .limit(1)
+
+    const currentMbti = currentTraitRows && currentTraitRows.length > 0 ? currentTraitRows[0].mbti : null
+    console.log('currentMbti:', currentMbti)
+
+    // 3. Fetch all other users' profiles
+    const { data: candidateProfiles, error: candidatesError } = await supabaseClient
       .from('profiles')
-      .select('*, user_traits(*)')
+      .select('*')
       .neq('id', userId)
-      
-    if (candidatesError || !candidates) throw new Error('Failed to fetch candidates')
 
-    // 3. Fetch MBTI Compatibility for the current user
+    if (candidatesError || !candidateProfiles) throw new Error('Failed to fetch candidates')
+
+    // 4. Fetch traits for all candidates
+    const candidateIds = candidateProfiles.map((c: any) => c.id)
+    const { data: allTraits } = await supabaseClient
+      .from('user_traits')
+      .select('user_id, mbti')
+      .in('user_id', candidateIds)
+
+    // 5. Fetch ALL MBTI Compatibilities (no filter - we'll match in code)
     const { data: compatibilities, error: compatError } = await supabaseClient
       .from('mbti_compatibility')
       .select('*')
-      .or(`mbti1.eq.${currentMbti},mbti2.eq.${currentMbti}`)
 
     if (compatError) throw new Error('Failed to fetch compatibilities')
 
-    // Prepare data for OpenAI
-    const openAiConfig = new Configuration({
+    console.log('compatibilities count:', compatibilities?.length)
+
+    const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     })
-    const openai = new OpenAIApi(openAiConfig)
 
-    // Build context prompt
-    const candidatesContext = candidates.map(c => {
-      const trait = c.user_traits[0] || {}
-      
-      // Find compatibility score
-      const compat = compatibilities?.find(cmp => 
-        (cmp.mbti1 === currentMbti && cmp.mbti2 === trait.mbti) ||
-        (cmp.mbti2 === currentMbti && cmp.mbti1 === trait.mbti)
-      ) || { score: 50, reason: "알려지지 않은 궁합입니다." }
+    // Build context prompt with properly merged data
+    const candidatesContext = candidateProfiles.map((c: any) => {
+      const trait = allTraits?.find((t: any) => t.user_id === c.id)
+      const candidateMbti = trait?.mbti ?? null
+
+      let compat = { score: 50, reason: '알려지지 않은 궁합입니다.' }
+      if (currentMbti && candidateMbti && compatibilities) {
+        const found = compatibilities.find((cmp: any) =>
+          (cmp.mbti1 === currentMbti && cmp.mbti2 === candidateMbti) ||
+          (cmp.mbti2 === currentMbti && cmp.mbti1 === candidateMbti)
+        )
+        if (found) compat = found
+      }
+
+      console.log(`Candidate ${c.nickname}: MBTI=${candidateMbti}, compat score=${compat.score}`)
+
+      const age = c.birth_date
+        ? new Date().getFullYear() - new Date(c.birth_date).getFullYear()
+        : 'Unknown'
 
       return `Candidate ID: ${c.id}
-Name: ${c.nickname}
-Age: ${c.birth_date ? new Date().getFullYear() - new Date(c.birth_date).getFullYear() : 'Unknown'}
-MBTI: ${trait.mbti || 'Unknown'}
+Name: ${c.nickname || 'Unknown'}
+Age: ${age}
+MBTI: ${candidateMbti || 'Unknown'}
 Job: ${c.occupation || 'Unknown'}
 Height: ${c.height || 'Unknown'}
 Drinking: ${c.drinking || 'Unknown'}
 Smoking: ${c.smoking || 'Unknown'}
-MBTI Score with Current User (${currentMbti}): ${compat.score} -> ${compat.reason}`
+MBTI Compatibility Score with Current User (${currentMbti}): ${compat.score} -> ${compat.reason}`
     }).join('\n\n')
 
     const systemPrompt = `You are an AI dating app matchmaker. The current user is asking: "${query}".
@@ -94,47 +117,44 @@ You must return the response in strict JSON format matching exactly this structu
   "reason3": "Short explanation about a specific trait (e.g., non-smoker, job) that matches the query.",
   "reason4": "1-2 sentences summarizing the final recommendation."
 }
-Do not include any other text besides the JSON array.`
+Do not include any other text besides the JSON object.`
 
-    const chatCompletion = await openai.createChatCompletion({
-      model: "gpt-4-turbo-preview",
-      messages: [{ role: "system", content: systemPrompt }],
+    const chatCompletion = await openai.chat.completions.create({
+      model: 'gpt-4-turbo-preview',
+      messages: [{ role: 'system', content: systemPrompt }],
       temperature: 0.7,
-      response_format: { type: "json_object" }
-    });
+      response_format: { type: 'json_object' },
+    })
 
-    const resultText = chatCompletion.data.choices[0].message?.content
+    const resultText = chatCompletion.choices[0].message?.content
     if (!resultText) throw new Error('No response from AI')
-    
-    let aiResponse;
+
+    let aiResponse
     try {
-        aiResponse = JSON.parse(resultText)
-    } catch(e) {
-        throw new Error('Failed to parse AI JSON response: ' + resultText)
+      aiResponse = JSON.parse(resultText)
+    } catch (e) {
+      throw new Error('Failed to parse AI JSON response: ' + resultText)
     }
 
-    // Find the chosen candidate details to return to the client
-    const bestCandidate = candidates.find(c => c.id === aiResponse.recommendedUserId)
+    const bestCandidate = candidateProfiles.find((c: any) => c.id === aiResponse.recommendedUserId)
 
-    if(!bestCandidate) {
-         throw new Error('AI recommended an unknown user ID: ' + aiResponse.recommendedUserId)
+    if (!bestCandidate) {
+      throw new Error('AI recommended an unknown user ID: ' + aiResponse.recommendedUserId)
     }
 
-    // Assemble final response
     const finalResponse = {
-        candidate: bestCandidate,
-        reasons: {
-            step1: aiResponse.reason1,
-            step2: aiResponse.reason2,
-            step3: aiResponse.reason3,
-            step4: aiResponse.reason4
-        }
+      candidate: bestCandidate,
+      reasons: {
+        step1: aiResponse.reason1,
+        step2: aiResponse.reason2,
+        step3: aiResponse.reason3,
+        step4: aiResponse.reason4,
+      },
     }
 
-    return new Response(
-      JSON.stringify(finalResponse),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    return new Response(JSON.stringify(finalResponse), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

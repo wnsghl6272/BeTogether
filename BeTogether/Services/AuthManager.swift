@@ -45,7 +45,39 @@ class AuthManager: ObservableObject {
         self.currentAccessToken = session.accessToken
         return session.accessToken
     }
+    
+    /// Returns a valid, non-expired access token from the current Supabase session.
+    /// Tries to refresh the session if expired. Always prefer this over `currentAccessToken`.
+    func fetchCurrentAccessToken() async -> String? {
+        // Step 1: Try to explicitly refresh the session (handles expired tokens automatically)
+        do {
+            let session = try await client.auth.refreshSession()
+            self.currentAccessToken = session.accessToken
+            print("AuthManager: Token refreshed successfully.")
+            return session.accessToken
+        } catch {
+            print("AuthManager: Session refresh failed, trying existing session. \(error)")
+        }
+        
+        // Step 2: Try to read the current session (might still be valid)
+        do {
+            let session = try await client.auth.session
+            self.currentAccessToken = session.accessToken
+            print("AuthManager: Using existing session token.")
+            return session.accessToken
+        } catch {
+            print("AuthManager: No valid session available, using stored token. \(error)")
+        }
+        
+        // Step 3: Last resort — use the manually stored token from OTP verification
+        return currentAccessToken
+    }
+
     // MARK: - Profile & Traits Query and Update
+    
+    var currentUserId: String? {
+        return getUserIdFromToken()
+    }
     
     private func getUserIdFromToken() -> String? {
         guard let token = currentAccessToken else { return nil }

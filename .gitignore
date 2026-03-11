@@ -28,3 +28,4 @@ fastlane/test_output
 *.swo
 .vscode/
 .idea/
+build_log.txt

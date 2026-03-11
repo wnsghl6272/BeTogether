@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum CardEffect {
+enum CardEffect: Equatable {
     case none
     case fog      // Tap to reveal (Foggy overlay)
     case sparkle  // Scroll to reveal (Sparkling overlay)

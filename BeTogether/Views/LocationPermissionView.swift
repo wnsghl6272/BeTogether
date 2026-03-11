@@ -51,7 +51,7 @@ struct LocationPermissionView: View {
                         }
                     }
                     .disabled(isSaving)
-                    .onChange(of: permissionManager.locationStatus) { newStatus in
+                    .onChange(of: permissionManager.locationStatus) { oldStatus, newStatus in
                         if newStatus != .notDetermined {
                             continueToNextStep()
                         }

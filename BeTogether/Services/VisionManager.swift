@@ -35,8 +35,12 @@ class VisionManager {
                 
                 // Fix for iOS Simulator "Could not create inference context" error
                 #if targetEnvironment(simulator)
-                // Suppress iOS 17 deprecation warning while retaining the simulator fix for iOS 16 fallback testing
-                request.perform( #selector(setter: VNDetectFaceRectanglesRequest.usesCPUOnly), with: true)
+                if #available(iOS 17.0, *) {
+                    // usesCPUOnly is deprecated in iOS 17+ and the bug is largely fixed
+                } else {
+                    // Suppress iOS 17 deprecation warning while retaining the simulator fix for iOS 16 fallback testing
+                    request.perform( #selector(setter: VNDetectFaceRectanglesRequest.usesCPUOnly), with: true)
+                }
                 #endif
                 
                 let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
