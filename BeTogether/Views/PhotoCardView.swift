@@ -16,6 +16,7 @@ enum CardEffect {
     case gemPolish // Gem polishing effect (8th card)
     case envelopes // Message note effect (9th card)
     case underwater // Underwater effect (10th card)
+    case aiReveal(reasons: [String]) // AI 4-step reveal effect
 }
 
 struct PhotoCardView: View {
@@ -101,6 +102,11 @@ struct PhotoCardView: View {
                 .zIndex(0)
             } else if effect == .blur {
                 BlurEffectView(isRevealed: $isRevealed) {
+                    mainCardContent
+                }
+                .zIndex(0)
+            } else if case let .aiReveal(reasons) = effect {
+                AiRevealEffectView(user: user, candidateReasons: reasons, isRevealed: $isRevealed) {
                     mainCardContent
                 }
                 .zIndex(0)

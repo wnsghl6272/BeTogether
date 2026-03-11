@@ -41,10 +41,16 @@ struct HomeView: View {
             
             // Photo Card List
             ScrollView {
-                LazyVStack(spacing: 20) {
-                    ForEach(Array(users.enumerated()), id: \.element.id) { index, user in
-                        PhotoCardView(user: user, effect: getEffect(for: index))
-                            .padding(.horizontal)
+                VStack(spacing: 20) {
+                    // AI Matchmaker Section
+                    AiChatInterfaceView()
+                        .padding(.top, 10)
+                        
+                    LazyVStack(spacing: 20) {
+                        ForEach(Array(users.enumerated()), id: \.element.id) { index, user in
+                            PhotoCardView(user: user, effect: getEffect(for: index))
+                                .padding(.horizontal)
+                        }
                     }
                 }
                 .padding(.vertical)
