@@ -64,4 +64,5 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
         .environmentObject(UserSessionViewModel())
+        .environmentObject(OnboardingRouter())
 }

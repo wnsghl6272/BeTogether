@@ -21,6 +21,7 @@ struct ContentView: View {
             } else {
                 if userSession.isLoggedIn || router.authState == .approved {
                     MainTabView()
+                        .environmentObject(router)
                         .transition(.opacity)
                 } else if router.authState == .pendingApproval || router.authState == .rejected {
                     ApprovalWaitingView()
