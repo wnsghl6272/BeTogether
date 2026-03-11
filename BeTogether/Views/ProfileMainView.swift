@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileMainView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
     
     var body: some View {
         NavigationView {
@@ -40,9 +41,19 @@ struct ProfileMainView: View {
                     Section("Actions") {
                         Button(action: {
                             // Logout Logic
-                            userSession.isLoggedIn = false
-                            userSession.isOnboardingComplete = false
-                            userSession.currentOnboardingStep = .landing
+                            Task {
+                                do {
+                                    try await AuthManager.shared.signOut()
+                                } catch {
+                                    print("Error signing out: \(error)")
+                                }
+                                await MainActor.run {
+                                    userSession.isLoggedIn = false
+                                    userSession.isOnboardingComplete = false
+                                    userSession.currentOnboardingStep = .landing
+                                    router.authState = .unauthenticated
+                                }
+                            }
                         }) {
                             Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
                                 .foregroundColor(.red)
@@ -59,4 +70,5 @@ struct ProfileMainView: View {
 #Preview {
     ProfileMainView()
         .environmentObject(UserSessionViewModel())
+        .environmentObject(OnboardingRouter())
 }
