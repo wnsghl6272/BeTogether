@@ -22,7 +22,13 @@ enum CardEffect: Equatable {
 struct PhotoCardView: View {
     let user: User
     var effect: CardEffect = .none
+    var onAction: ((String) -> Void)? = nil
     @State private var isRevealed: Bool = false
+    @State private var currentImageIndex: Int = 0
+    
+    private var imagesToDisplay: [String] {
+        user.imageNames.isEmpty ? [user.imageName] : user.imageNames
+    }
     
     
 
@@ -140,11 +146,46 @@ struct PhotoCardView: View {
         ZStack(alignment: .bottomLeading) {
             // Background Image
             GeometryReader { geometry in
-                Image(user.imageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
+                TabView(selection: $currentImageIndex) {
+                    ForEach(Array(imagesToDisplay.enumerated()), id: \.offset) { index, imageUrl in
+                        if imageUrl.hasPrefix("http") {
+                            let encodedUrlStr = imageUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? imageUrl
+                            SimulatorSafeAsyncImage(url: URL(string: encodedUrlStr)) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Rectangle()
+                                    .fill(Color(.systemGray5))
+                                    .overlay(ProgressView())
+                            } errorView: { error in
+                                VStack {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .foregroundColor(.red)
+                                    Text(error.localizedDescription)
+                                        .font(.caption2)
+                                        .foregroundColor(.red)
+                                        .multilineTextAlignment(.center)
+                                        .padding()
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(Color(.systemGray6))
+                            }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped()
+                            .tag(index)
+                        } else {
+                            Image(imageUrl)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .clipped()
+                                .tag(index)
+                        }
+                    }
+
+                }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             }
             .cornerRadius(20)
             
@@ -155,6 +196,25 @@ struct PhotoCardView: View {
                 endPoint: .bottom
             )
             .cornerRadius(20)
+            .allowsHitTesting(false)
+            
+            // Custom Top Page Indicator
+            if imagesToDisplay.count > 1 {
+                VStack {
+                    HStack(spacing: 6) {
+                        ForEach(0..<imagesToDisplay.count, id: \.self) { index in
+                            Circle()
+                                .fill(index == currentImageIndex ? Color.white : Color.white.opacity(0.4))
+                                .frame(width: 6, height: 6)
+                                .shadow(radius: 1)
+                        }
+                    }
+                    .padding(.top, 16)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .allowsHitTesting(false)
+            }
             
             // Info Content
             VStack(alignment: .leading, spacing: 6) {
@@ -213,36 +273,50 @@ struct PhotoCardView: View {
                 
                 // Action Buttons
                 HStack(spacing: 20) {
-                    Button(action: {}) {
+                    Spacer()
+                    
+                    // X Button (Pass)
+                    Button(action: {
+                        onAction?("pass")
+                    }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.white)
-                            .frame(width: 55, height: 55)
+                            .frame(width: 60, height: 60)
                             .background(Color.gray.opacity(0.4))
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
                     }
                     
-                    Button(action: {}) {
-                        Text("Add Friend")
-                            .font(.system(size: 18, weight: .bold))
+                    // Heart Button (Like)
+                    Button(action: {
+                        onAction?("like")
+                    }) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 28, weight: .bold))
                             .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 55)
+                            .frame(width: 70, height: 70)
                             .background(Color.btTeal)
-                            .cornerRadius(27.5)
+                            .clipShape(Circle())
                             .shadow(color: .btTeal.opacity(0.4), radius: 5, x: 0, y: 3)
                     }
                     
-                    Button(action: {}) {
+                    // Sparkles Button (Super Like)
+                    Button(action: {
+                        // Super like is currently disabled
+                    }) {
                         Image(systemName: "sparkles")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.white)
-                            .frame(width: 55, height: 55)
+                            .frame(width: 60, height: 60)
                             .background(LinearGradient(gradient: Gradient(colors: [.pink, .purple]), startPoint: .topLeading, endPoint: .bottomTrailing))
                             .clipShape(Circle())
                             .shadow(color: .pink.opacity(0.4), radius: 5, x: 0, y: 3)
                     }
+                    .disabled(true)
+                    .opacity(0.5)
+                    
+                    Spacer()
                 }
                 .padding(.top, 15)
             }
@@ -258,4 +332,48 @@ struct PhotoCardView: View {
     PhotoCardView(user: User.mockUsers[0], effect: .fog)
         .padding()
         .background(Color.btIvory)
+}
+
+struct SimulatorSafeAsyncImage<Content: View, Placeholder: View, ErrorView: View>: View {
+    let url: URL?
+    @ViewBuilder let content: (Image) -> Content
+    @ViewBuilder let placeholder: () -> Placeholder
+    @ViewBuilder let errorView: (Error) -> ErrorView
+
+    @State private var uiImage: UIImage?
+    @State private var isLoading = true
+    @State private var error: Error?
+
+    var body: some View {
+        ZStack {
+            if isLoading {
+                placeholder()
+            } else if let uiImage = uiImage {
+                content(Image(uiImage: uiImage))
+            } else if let error = error {
+                errorView(error)
+            } else {
+                placeholder()
+            }
+        }
+        .task(id: url) {
+            guard let url = url else {
+                isLoading = false
+                return
+            }
+            // Fetch anew instead of relying on default shared URLSession
+            do {
+                let session = URLSession(configuration: .ephemeral)
+                let (data, _) = try await session.data(from: url)
+                if let image = UIImage(data: data) {
+                    self.uiImage = image
+                } else {
+                    self.error = URLError(.cannotDecodeRawData)
+                }
+            } catch {
+                self.error = error
+            }
+            isLoading = false
+        }
+    }
 }

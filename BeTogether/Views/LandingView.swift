@@ -41,7 +41,7 @@ struct LandingView: View {
                     .foregroundColor(.btTeal)
                     .multilineTextAlignment(.center)
                 
-                Text("Your journey with BeTogether begins now")
+                Text("Your journey with Honsyl begins now")
                     .font(.btSubheader)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)

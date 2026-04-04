@@ -22,15 +22,10 @@ struct SplashView: View {
                             .foregroundColor(.white)
                     }
                     
-                    // Brand Name - Stacked for logo feel
-                    VStack(spacing: 2) {
-                        Text("Be")
-                            .font(.system(size: 32, weight: .light, design: .rounded))
-                            .foregroundColor(.btTeal)
-                        Text("Together")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundColor(.btTeal)
-                    }
+                    // Brand Name
+                    Text("Honsyl")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .foregroundColor(.btTeal)
                 }
                 .scaleEffect(size)
                 .opacity(opacity)

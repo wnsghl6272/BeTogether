@@ -43,16 +43,46 @@ serve(async (req) => {
     const currentMbti = currentTraitRows && currentTraitRows.length > 0 ? currentTraitRows[0].mbti : null
     console.log('currentMbti:', currentMbti)
 
-    // 3. Fetch all other users' profiles
+    // 3. Fetch all other users' profiles (excluding admin role, only approved)
     const { data: candidateProfiles, error: candidatesError } = await supabaseClient
       .from('profiles')
       .select('*')
       .neq('id', userId)
+      .neq('role', 'admin')
+      .eq('status', 'approved')
 
     if (candidatesError || !candidateProfiles) throw new Error('Failed to fetch candidates')
 
+    // 3.5 Fetch current user interactions to filter out ones already liked, or passed within 24h
+    const { data: interactions } = await supabaseClient
+      .from('user_interactions')
+      .select('to_user, action, created_at')
+      .eq('from_user', userId)
+
+    const excludedIds = new Set<string>()
+    if (interactions) {
+      const now = new Date().getTime()
+      const hours24 = 24 * 60 * 60 * 1000
+      interactions.forEach((inter: any) => {
+        if (inter.action === 'like' || inter.action === 'super_like') {
+          excludedIds.add(inter.to_user)
+        } else if (inter.action === 'pass') {
+          const passTime = new Date(inter.created_at).getTime()
+          if (now - passTime < hours24) {
+            excludedIds.add(inter.to_user)
+          }
+        }
+      })
+    }
+
+    const filteredCandidates = candidateProfiles.filter((c: any) => !excludedIds.has(c.id))
+
     // 4. Fetch traits for all candidates
-    const candidateIds = candidateProfiles.map((c: any) => c.id)
+    const candidateIds = filteredCandidates.map((c: any) => c.id)
+    if (candidateIds.length === 0) {
+      throw new Error('No potential candidates available to match (You are the only user).')
+    }
+
     const { data: allTraits } = await supabaseClient
       .from('user_traits')
       .select('user_id, mbti')
@@ -72,7 +102,7 @@ serve(async (req) => {
     })
 
     // Build context prompt with properly merged data
-    const candidatesContext = candidateProfiles.map((c: any) => {
+    const candidatesContext = filteredCandidates.map((c: any) => {
       const trait = allTraits?.find((t: any) => t.user_id === c.id)
       const candidateMbti = trait?.mbti ?? null
 
@@ -108,19 +138,24 @@ The current user's info: MBTI is ${currentMbti}, Age is ${new Date().getFullYear
 Here is a list of potential candidates:
 ${candidatesContext}
 
-Based ONLY on the user's query and the candidates provided, find the single best matching candidate.
+Based ONLY on the user's query and the candidates provided, find up to 3 of the best matching candidates (if the user asks for "anyone" or "all", provide up to 3 diverse matching candidates).
+You MUST choose exact Candidate IDs from the list above. Do not invent an ID or use "Unknown". If no one fits, return an empty array.
 You must return the response in strict JSON format matching exactly this structure:
 {
-  "recommendedUserId": "uuid of the chosen candidate",
-  "reason1": "Short explanation about their MBTI compatibility score and detail.",
-  "reason2": "Short explanation about their Age or other basic match regarding the query.",
-  "reason3": "Short explanation about a specific trait (e.g., non-smoker, job) that matches the query.",
-  "reason4": "1-2 sentences summarizing the final recommendation."
+  "recommendations": [
+    {
+      "recommendedUserId": "uuid of the chosen candidate",
+      "reason1": "Short explanation about their MBTI compatibility score and detail.",
+      "reason2": "Short explanation about their Age or other basic match regarding the query.",
+      "reason3": "Short explanation about a specific trait (e.g., non-smoker, job) that matches the query.",
+      "reason4": "1-2 sentences summarizing the final recommendation."
+    }
+  ]
 }
 Do not include any other text besides the JSON object.`
 
     const chatCompletion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: 'gpt-4o-mini',
       messages: [{ role: 'system', content: systemPrompt }],
       temperature: 0.7,
       response_format: { type: 'json_object' },
@@ -136,26 +171,39 @@ Do not include any other text besides the JSON object.`
       throw new Error('Failed to parse AI JSON response: ' + resultText)
     }
 
-    const bestCandidate = candidateProfiles.find((c: any) => c.id === aiResponse.recommendedUserId)
+    if (!aiResponse.recommendations || aiResponse.recommendations.length === 0) {
+      throw new Error('AI found no matching candidates for the given query.')
+    }
 
-    if (!bestCandidate) {
-      throw new Error('AI recommended an unknown user ID: ' + aiResponse.recommendedUserId)
+    const finalCandidates = aiResponse.recommendations.map((rec: any) => {
+      const bestCandidate = candidateProfiles.find((c: any) => c.id === rec.recommendedUserId)
+      if (!bestCandidate) {
+        console.warn('AI recommended unknown ID: ' + rec.recommendedUserId)
+        return null
+      }
+      return {
+        candidate: bestCandidate,
+        reasons: {
+          step1: rec.reason1 || "Matched successfully.",
+          step2: rec.reason2 || "Good compatibilities.",
+          step3: rec.reason3 || "Traits align well.",
+          step4: rec.reason4 || "Recommended by AI matchmaker.",
+        }
+      }
+    }).filter(Boolean)
+
+    if (finalCandidates.length === 0) {
+      throw new Error('AI recommended an unknown user ID: ' + JSON.stringify(aiResponse))
     }
 
     const finalResponse = {
-      candidate: bestCandidate,
-      reasons: {
-        step1: aiResponse.reason1,
-        step2: aiResponse.reason2,
-        step3: aiResponse.reason3,
-        step4: aiResponse.reason4,
-      },
+      candidates: finalCandidates
     }
 
     return new Response(JSON.stringify(finalResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-  } catch (error) {
+  } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

@@ -47,7 +47,7 @@ struct ApprovalWaitingView: View {
                         Text("You're Approved!")
                             .font(.btHeader)
                             .foregroundColor(.btTeal)
-                        Text("Welcome to BeTogether.\nStart finding your true connection.")
+                        Text("Welcome to Honsyl.\nStart finding your true connection.")
                             .font(.btSubheader)
                             .foregroundColor(.black)
                             .multilineTextAlignment(.center)
@@ -75,7 +75,7 @@ struct ApprovalWaitingView: View {
                 
                 // Action Button
                 if router.authState == .approved {
-                    BTButton(title: "Start BeTogether") {
+                    BTButton(title: "Start Honsyl") {
                         userSession.isLoggedIn = true 
                         router.authState = .approved
                     }

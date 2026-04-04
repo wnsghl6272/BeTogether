@@ -1,7 +1,8 @@
 import Foundation
 
 struct User: Identifiable {
-    let id = UUID()
+    let id = UUID() // Internal UI ID
+    var supabaseId: String? = nil // Real database ID
     let name: String
     let age: Int
     let region: String
@@ -19,6 +20,8 @@ struct User: Identifiable {
     let smoking: String
     let oneLineIntro: String
     let selfIntro: String
+    
+    var imageNames: [String] = []
 }
 
 extension User {

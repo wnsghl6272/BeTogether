@@ -96,7 +96,7 @@ struct ContactBlockingView: View {
                         ContactPicker(selectedContacts: $blockedContacts)
                     }
                     
-                    Text("We securely hash phone numbers using SHA-256.\nBeTogether never stores your contacts.")
+                    Text("We securely hash phone numbers using SHA-256.\nHonsyl never stores your contacts.")
                         .font(.caption)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
