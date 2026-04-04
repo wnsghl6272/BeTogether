@@ -14,30 +14,29 @@ struct MainTabView: View {
                 }
                 .tag(0)
             
-            // Tab 2: Matches & Chat
+            // Tab 2: Explore
             MatchesView()
                 .tabItem {
-                    Image(systemName: "heart.fill")
-                    Text("Matches")
+                    Image(systemName: "magnifyingglass")
+                    Text("Explore")
                 }
                 .tag(1)
             
-            // Tab 3: Explore
+            // Tab 3: Like
             ExploreView()
                 .tabItem {
-                    Image(systemName: "safari.fill")
-                    Text("Explore")
+                    Image(systemName: "heart.fill")
+                    Text("Like")
                 }
                 .tag(2)
             
-            // Tab 4: Notifications
-            NotificationView()
+            // Tab 4: Chat
+            ChatRootView()
                 .tabItem {
-                    Image(systemName: "bell.fill")
-                    Text("Alerts")
+                    Image(systemName: "message.fill")
+                    Text("Chat")
                 }
                 .tag(3)
-                .badge(3) // Example badge
             
             // Tab 5: Profile
             ProfileMainView()

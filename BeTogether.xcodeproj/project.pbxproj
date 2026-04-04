@@ -45,8 +45,12 @@
 		69435FB32F4C745C002A6F5D /* RangeSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB02F4C745C002A6F5D /* RangeSlider.swift */; };
 		69435FB62F4C746A002A6F5D /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB42F4C746A002A6F5D /* PermissionManager.swift */; };
 		69435FB72F4C746A002A6F5D /* VisionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB52F4C746A002A6F5D /* VisionManager.swift */; };
+		699263C72F80CA63007156F0 /* ChatRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699263C52F80CA63007156F0 /* ChatRoomView.swift */; };
+		699263C82F80CA63007156F0 /* ChatRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699263C62F80CA63007156F0 /* ChatRootView.swift */; };
+		699263CA2F80CA7E007156F0 /* ChatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699263C92F80CA7E007156F0 /* ChatManager.swift */; };
 		69E5312F2F60FC5B0028598B /* AiChatInterfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E5312E2F60FC5B0028598B /* AiChatInterfaceView.swift */; };
 		69E531312F60FC9A0028598B /* AiRevealEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E531302F60FC9A0028598B /* AiRevealEffectView.swift */; };
+		7DEB0056DEE9B68B06A6F9E5 /* InteractionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3141C894483AFF85CB1A790 /* InteractionManager.swift */; };
 		7F734CF3C08B242A8E8E708B /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08CDCAFE5ABDDED56503D591 /* AdminDashboardView.swift */; };
 		B001 /* BeTogetherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001 /* BeTogetherApp.swift */; };
 		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002 /* ContentView.swift */; };
@@ -123,6 +127,9 @@
 		69435FB02F4C745C002A6F5D /* RangeSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangeSlider.swift; sourceTree = "<group>"; };
 		69435FB42F4C746A002A6F5D /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
 		69435FB52F4C746A002A6F5D /* VisionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionManager.swift; sourceTree = "<group>"; };
+		699263C52F80CA63007156F0 /* ChatRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomView.swift; sourceTree = "<group>"; };
+		699263C62F80CA63007156F0 /* ChatRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRootView.swift; sourceTree = "<group>"; };
+		699263C92F80CA7E007156F0 /* ChatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatManager.swift; sourceTree = "<group>"; };
 		69E5312E2F60FC5B0028598B /* AiChatInterfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiChatInterfaceView.swift; sourceTree = "<group>"; };
 		69E531302F60FC9A0028598B /* AiRevealEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiRevealEffectView.swift; sourceTree = "<group>"; };
 		A001 /* BeTogetherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeTogetherApp.swift; sourceTree = "<group>"; };
@@ -158,6 +165,7 @@
 		A031 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		A032 /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationView.swift; sourceTree = "<group>"; };
 		A033 /* ProfileMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileMainView.swift; sourceTree = "<group>"; };
+		A3141C894483AFF85CB1A790 /* InteractionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InteractionManager.swift; sourceTree = "<group>"; };
 		E486B4577D0B815468A20B24 /* AuthManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		P001 /* BeTogether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeTogether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -177,10 +185,12 @@
 		2BC1B0E1B87503EC7CAEC112 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				699263C92F80CA7E007156F0 /* ChatManager.swift */,
 				69435FB42F4C746A002A6F5D /* PermissionManager.swift */,
 				69435FB52F4C746A002A6F5D /* VisionManager.swift */,
 				3489DB823DDEC810AD4A757B /* Config.swift */,
 				E486B4577D0B815468A20B24 /* AuthManager.swift */,
+				A3141C894483AFF85CB1A790 /* InteractionManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -261,6 +271,8 @@
 		G003 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				699263C52F80CA63007156F0 /* ChatRoomView.swift */,
+				699263C62F80CA63007156F0 /* ChatRootView.swift */,
 				69435F552F434D6D002A6F5D /* Effects */,
 				A002 /* ContentView.swift */,
 				69E5312E2F60FC5B0028598B /* AiChatInterfaceView.swift */,
@@ -430,6 +442,8 @@
 			files = (
 				B001 /* BeTogetherApp.swift in Sources */,
 				B002 /* ContentView.swift in Sources */,
+				699263C72F80CA63007156F0 /* ChatRoomView.swift in Sources */,
+				699263C82F80CA63007156F0 /* ChatRootView.swift in Sources */,
 				B003 /* SplashView.swift in Sources */,
 				69435F562F434D6D002A6F5D /* SparkleEffectView.swift in Sources */,
 				69435F572F434D6D002A6F5D /* DoorEffectView.swift in Sources */,
@@ -443,6 +457,7 @@
 				69435F5D2F434D6D002A6F5D /* HeartPuzzleEffectView.swift in Sources */,
 				69435F5E2F434D6D002A6F5D /* FogEffectView.swift in Sources */,
 				69435F5F2F434D6D002A6F5D /* MagnifyEffectView.swift in Sources */,
+				699263CA2F80CA7E007156F0 /* ChatManager.swift in Sources */,
 				69435F602F434D6D002A6F5D /* EnvelopesEffectView.swift in Sources */,
 				69435F612F434D6D002A6F5D /* GemPolishEffectView.swift in Sources */,
 				69435F622F434D6D002A6F5D /* CurtainEffectView.swift in Sources */,
@@ -491,6 +506,7 @@
 				51C828FCDDDD720D244511C3 /* AuthManager.swift in Sources */,
 				021A35D7F76B7604C42D1D44 /* EmailVerificationView.swift in Sources */,
 				7F734CF3C08B242A8E8E708B /* AdminDashboardView.swift in Sources */,
+				7DEB0056DEE9B68B06A6F9E5 /* InteractionManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
