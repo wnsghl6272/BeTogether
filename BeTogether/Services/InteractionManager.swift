@@ -222,6 +222,7 @@ class InteractionManager {
         let birth_date: String?
         let occupation: String?
         let height: String?
+        let mbti: String?
     }
 
     /// Fetches users who have liked the active user
@@ -242,5 +243,150 @@ class InteractionManager {
             .setHeader(name: "Authorization", value: "Bearer \(token)")
             .execute().value
         return await convertProfilesToUsers(profiles, defaultStatus: "Your Friend")
+    }
+    
+    // MARK: - Daily Picks Recommendations
+    
+    struct DailyPickDBRecord: Codable {
+        let id: String?
+        let user_id: String
+        let target_user_id: String
+        let picked_date: String
+        let is_unlocked: Bool
+    }
+    
+    func fetchDailyPicks() async throws -> [(user: User, isUnlocked: Bool)] {
+        let client = AuthManager.shared.client
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
+              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token) else {
+            throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        // Ensure UTC for consistency across client sessions
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        let todayStr = formatter.string(from: Date())
+        
+        var picks: [DailyPickDBRecord] = try await client.from("daily_picks")
+            .select()
+            .eq("user_id", value: currentUserId)
+            .eq("picked_date", value: todayStr)
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute().value
+            
+        if picks.isEmpty {
+            // Fetch 10 random candidates excluding current user
+            let allProfiles: [ProfileResponse] = try await client.from("profiles")
+                .select("id, nickname, birth_date, occupation, height")
+                .neq("id", value: currentUserId)
+                .limit(10)
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute().value
+                
+            let shuffled = allProfiles.shuffled()
+            let selected = Array(shuffled.prefix(2))
+            
+            for profile in selected {
+                let newPick = DailyPickDBRecord(
+                    id: UUID().uuidString,
+                    user_id: currentUserId,
+                    target_user_id: profile.id,
+                    picked_date: todayStr,
+                    is_unlocked: false
+                )
+                try await client.from("daily_picks")
+                    .insert(newPick)
+                    .setHeader(name: "Authorization", value: "Bearer \(token)")
+                    .execute()
+                
+                picks.append(newPick)
+            }
+        }
+        
+        let targetIds = picks.map { $0.target_user_id }
+        guard !targetIds.isEmpty else { return [] }
+        
+        let profiles: [ProfileResponse] = try await client.from("profiles")
+            .select("id, nickname, birth_date, occupation, height")
+            .in("id", values: targetIds)
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute().value
+            
+        var finalUsers: [(user: User, isUnlocked: Bool)] = []
+        for pick in picks {
+            if let profile = profiles.first(where: { $0.id == pick.target_user_id }) {
+                var fetchedImageName = "profile_korean_1"
+                if let userPhotos = try? await AuthManager.shared.fetchUserPhotos(userId: profile.id), let firstPhoto = userPhotos.first {
+                    fetchedImageName = firstPhoto.image_url
+                }
+                
+                let birthYearString = String((profile.birth_date ?? "").prefix(4))
+                let birthYear = Int(birthYearString) ?? 2000
+                let currentYear = Calendar.current.component(.year, from: Date())
+                let calculatedAge = currentYear - birthYear
+
+                let newUser = User(
+                    supabaseId: profile.id,
+                    name: profile.nickname ?? "Unknown",
+                    age: calculatedAge,
+                    region: "App User",
+                    distance: Int.random(in: 2...15), // Placeholder for Distance
+                    mbti: profile.mbti ?? "ISFP",    // Uses default if not set
+                    isOnline: false,
+                    isVerified: true,
+                    imageName: fetchedImageName,
+                    job: profile.occupation ?? "Not specified",
+                    height: Int(profile.height ?? "0") ?? 0,
+                    university: "",
+                    drinking: "",
+                    smoking: "",
+                    oneLineIntro: "Daily Pick",
+                    selfIntro: "",
+                    imageNames: [fetchedImageName]
+                )
+                finalUsers.append((user: newUser, isUnlocked: pick.is_unlocked))
+            }
+        }
+        return finalUsers
+    }
+    
+    func unlockDailyPick(targetUserId: String) async throws -> Bool {
+        let client = AuthManager.shared.client
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
+              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token) else {
+            throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        let todayStr = formatter.string(from: Date())
+        
+        let picks: [DailyPickDBRecord] = try await client.from("daily_picks")
+            .select()
+            .eq("user_id", value: currentUserId)
+            .eq("picked_date", value: todayStr)
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute().value
+            
+        let unlockedCount = picks.filter { $0.is_unlocked }.count
+        if unlockedCount >= 1 {
+            return false // Free unlock already used
+        }
+        
+        struct UpdatePick: Encodable {
+            let is_unlocked: Bool
+        }
+        
+        _ = try await client.from("daily_picks")
+            .update(UpdatePick(is_unlocked: true))
+            .eq("user_id", value: currentUserId)
+            .eq("target_user_id", value: targetUserId)
+            .eq("picked_date", value: todayStr)
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute()
+            
+        return true
     }
 }

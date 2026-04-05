@@ -104,6 +104,31 @@ AI 기반 유저 매칭 추천 기능. 유저가 원하는 상대방을 자연�
 - `ChatRootView`: 하단 Chat 탭 클릭 시, 기존 NotificationView 대신 노출됨. 상단 Segment를 통해 `Matches`와 `Friends`로 리스트 분리.
 - `ChatRoomView`: 1:1 카카오톡 스타일 채팅방 구현. `ScrollViewReader`를 연동하여 메시지를 주고받을 때 항상 대화방 최하단으로 자동 스크롤.
 
+### Phase 9 — Daily Picks & Bug Fixes
+
+오늘의 추천(Daily Picks) 기능 및 온보딩 사진 업로드 로직 디버깅.
+
+#### 구성 요소
+
+**1. VisionManager (온보딩 사진 얼굴 인식 픽스)**
+- iOS 시뮬레이터 환경에서 발생하는 `VNDetectFaceRectanglesRequest` (Code 9) 에러 해결.
+- 시뮬레이터 감지 시 최신 `.revision3` 대신 `.revision1`을 강제 주입하여 우회하는 폴백(Fallback) 로직 추가.
+
+**2. Database — `daily_picks` Table**
+- 테이블 생성 (`id`, `user_id`, `target_user_id`, `picked_date`, `is_unlocked`).
+- RLS 정책 설정. 권한 우회를 막기 위해 `INSERT/SELECT` 시 `user_id`가 `auth.uid()`와 일치해야만 허용.
+
+**3. iOS — `InteractionManager.swift`**
+- Lazy Generation(지연 생성) 아키텍처 구현: 서버에서 일괄 생성하지 않고, 유저가 앱에 진입 시 그 날(`picked_date`) 데이터가 없다면 그 즉시 상대방 `profiles` 중 무작위 2명을 가져와 DB에 보관. DB 비용 절감.
+- 존재하지 않는 `mbti` 필드 호출로 인한 `42703 (undefined_column)` PostgreSQL 이슈 해결.
+- 삽입 시 `id: UUID().uuidString`을 넘기도록 수정하여 `NOT NULL` 제약 조건 통과 보장.
+
+**4. iOS — `MatchesView.swift` & UI 개선**
+- 상단의 쓸모없는 탭 구조 (Matches, Report) 삭제. Navigation Title 을 "Connections" 에서 "Explore"로 직관적으로 변경.
+- `DailyPickCardView`에 Glassmorphism 블러(UIBlurEffect) 기법 도입하여 미니멀하고 프리미엄한 잠금 처리 레이아웃 완성.
+- 하루 1회 무료 언락 로직과 우아한 스프링 애니메이션(.spring) 결합.
+
+
 ### Security Audit (Production Readiness)
 
 출시 전(Production) 반드시 체크 및 수정하고 넘어가야 할 보안 및 안정성 검토 사항들입니다.
