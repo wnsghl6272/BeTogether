@@ -7,6 +7,7 @@ struct AiChatInterfaceView: View {
     @State private var matchedUsers: [User] = []
     @State private var matchReasonsArray: [[String]] = []
     @State private var showMatchesModal: Bool = false
+    @State private var matchedByPreference: Bool = true
     
     var body: some View {
         ScrollViewReader { proxy in
@@ -121,6 +122,21 @@ struct AiChatInterfaceView: View {
                                 Spacer()
                             }
                             
+                            if !matchedByPreference {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "info.circle.fill")
+                                        .foregroundColor(.orange)
+                                    Text("No exact preference matches found. Recommended based on your query.")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 6)
+                                .background(Color.orange.opacity(0.08))
+                                .cornerRadius(8)
+                                .padding(.horizontal, 14)
+                            }
+                            
                             TabView {
                                 ForEach(matchedUsers.indices, id: \.self) { index in
                                     if index < matchedUsers.count && index < matchReasonsArray.count {
@@ -220,6 +236,7 @@ struct AiChatInterfaceView: View {
             
             struct AiResponse: Decodable {
                 let candidates: [CandidateContainer]
+                let matchedByPreference: Bool?
             }
             struct CandidateContainer: Decodable {
                 let candidate: UserProfileResponse
@@ -231,6 +248,7 @@ struct AiChatInterfaceView: View {
                 let birth_date: String?
                 let occupation: String?
                 let height: String?
+                let mbti: String?
             }
             struct Reasons: Decodable {
                 let step1: String
@@ -266,7 +284,7 @@ struct AiChatInterfaceView: View {
                     age: calculatedAge,
                     region: "Online",
                     distance: 0,
-                    mbti: "N/A", // Not included in the AI response payload unless joined
+                    mbti: item.candidate.mbti ?? "N/A",
                     isOnline: true,
                     isVerified: true,
                     imageName: fetchedImageName,
@@ -291,6 +309,7 @@ struct AiChatInterfaceView: View {
             await MainActor.run {
                 self.matchedUsers = newMatchedUsers
                 self.matchReasonsArray = newMatchReasonsArray
+                self.matchedByPreference = result.matchedByPreference ?? true
                 self.showMatchesModal = true
             }
             

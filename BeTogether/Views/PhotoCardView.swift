@@ -171,14 +171,14 @@ struct PhotoCardView: View {
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .background(Color(.systemGray6))
                             }
-                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .frame(width: max(0, geometry.size.width), height: max(0, geometry.size.height))
                             .clipped()
                             .tag(index)
                         } else {
                             Image(imageUrl)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
-                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .frame(width: max(0, geometry.size.width), height: max(0, geometry.size.height))
                                 .clipped()
                                 .tag(index)
                         }

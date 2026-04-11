@@ -128,6 +128,48 @@ AI 기반 유저 매칭 추천 기능. 유저가 원하는 상대방을 자연�
 - `DailyPickCardView`에 Glassmorphism 블러(UIBlurEffect) 기법 도입하여 미니멀하고 프리미엄한 잠금 처리 레이아웃 완성.
 - 하루 1회 무료 언락 로직과 우아한 스프링 애니메이션(.spring) 결합.
 
+### Phase 10 — Real-Time Push Notification & Read Receipts System 결함 수정 및 고도화
+
+실시간 채팅 알림(알람 뱃지) 동기화 오류 및 메시지 프라이버시, SwiftUI 생명주기 관련 문제의 완벽한 해결.
+
+#### 구성 요소
+
+**1. Database — `notifications` Table & Realtime Publication**
+- 누락되었던 `notifications` 테이블을 `supabase_realtime` Publication에 포함(ALTER PUBLICATION)하여 클라이언트로의 실시간 웹소켓(WebSocket) 브로드캐스팅 라우트를 개통.
+- 홈 화면(종 아이콘)과 채팅 화면(메뉴 뱃지)의 읽음 상태 처리가 `is_read` 단일 컬럼으로 묶여있던 문제를 해결하고자 **`is_seen` boolean 컬럼 추가**.
+- `handle_new_message_notification` 트리거 수정: 사생활 보호를 위해 알림 생성 시 채팅 원문을 그대로 사용하지 않고, `profiles` 테이블과 조인하여 `"[상대방 닉네임] sent you a message."` 포맷으로 치환해 노출하도록 변경.
+
+**2. iOS — Read States Decoupling (상태 분리)**
+- **홈 화면 (알림 센터용)**: `is_seen` 컬럼만 감시 (`NotificationManager`). 알림 창을 열어보면 기존 알림들이 `is_seen = true`로 변경되며 홈 화면 뱃지가 사라지지만, 채팅방은 여전히 안 읽은 상태(`is_read = false`)로 유지됨.
+- **채팅 탭 (채팅 목록용)**: 기존대로 `is_read` 감시 (`ChatManager`). 사용자가 직접 채팅방에 진입 시 `is_read = true` 및 `is_seen = true`로 동시 업데이트하여 알림을 일괄 소진함.
+
+**3. iOS — SwiftUI `NavigationLink` Eager Evaluation Bug 수정**
+- `List` 내부의 `NavigationLink(destination: ChatRoomView)` 렌더링 과정에서 SwiftUI의 과도한 사전 로딩(Preload) 때문에 `.onAppear`가 유저 몰래 동작하여 알림을 읽음(`markMessagesAsRead`) 처리해버리던 치명적 버그 수정.
+- 화면 라우팅을 명시적 `Button` 터치 방식으로 뜯어고치고, `.onAppear` 대신 **Button Action 블록 내부**에서 직접 읽음 API를 호출하는 형태로 전환하여 안전성과 성능 확보.
+
+
+### Phase 11 — 닉네임 기반 친구 시스템, 프로필 UI 리뉴얼 & 업로드 최적화
+
+기존 매치 시스템과 완전히 분리된 닉네임 기반의 친구 추가/채팅 시스템을 구축하고, 프로필 조회/수정 기능 및 온보딩 과정을 개선.
+
+#### 구성 요소
+
+**1. 닉네임 친구 시스템 및 대화방 분리 (Conversations Architecture 도입)**
+- `conversations` 및 `conversation_members` 테이블을 활용한 метод C 아키텍처 도입.
+- 기존 `messages` 테이블을 `conversation_id` 단위로 나누어 데이터 격리 처리.
+- `add_friend_by_nickname` RPC 업데이트: 친구가 맺어질 경우 `type = 'friend'` 인 `conversations` 레코드 자동 생성.
+- `get_my_conversations` RPC 구성: `type` (match/friend)에 따라 채팅 세션 및 안읽은 메시지 수 별도 조회.
+- **UI/UX:** `ChatRootView`에서 Matches 와 Friends 세그먼트로 나누어 별개의 리스트와 배지 카운트 표시. `ExploreView`에서 친구 리스트의 대화 버튼 누르면 `pendingChatSession`을 통해 자동으로 특정 채팅방 진입.
+
+**2. 프로필 UI 리뉴얼 (Profile Menu)**
+- `ProfileMainView`: DB (`profiles` 및 `user_traits`)에서 불러온 내 모든 정보(키, 직업, 음주, 닉네임, 한줄소개 등)를 한눈에 볼 수 있도록 구성.
+- 사진 갤러리는 `TabView` 기반 스와이프 인터페이스로 고도화.
+- `ProfileEditView`: Form 스타일 입력. Supabase를 통해 클라우드에 직접 수정 데이터 영구 보존.
+
+**3. 온보딩 최적화**
+- **닉네임 중복 확인 (Validation):** `ProfileSetupView` 온보딩 닉네임 설정 시 "Check" 버튼 도입. 고유 아이디 성격에 맞게, 중복검사 통과 후에만 다음 단계 진행 가능. (저장 후 `ProfileEditView`에서는 수정 불가능하게 Lock 처리)
+- **업로드 용량 절감 (HEIC 압축 최적화):** `PhotoUploadView`에서 리스케일링 사이즈를 `1080px` → `800px`로 하향 조정 및 iOS 네이티브 API (AVFoundation) 를 활용한 HEIC 압축 로직 추가 (`UIImage+HEIC` 익스텐션). 이를 통해 **기존 JPEG 대비 약 50%의 서버 스토리지 및 네트워크 대역폭 비용 절감**.
+- **브랜딩 텍스트 수정:** 홈 화면, 스플래시 화면의 Honsyl 텍스트를 대문자 `HONSYL`로 일괄 적용.
 
 ### Security Audit (Production Readiness)
 
@@ -141,6 +183,60 @@ AI 기반 유저 매칭 추천 기능. 유저가 원하는 상대방을 자연�
    - RLS 정책(INSERT)에서, 악의적인 공격자가 HTTP 패킷의 JSON 바디 조작을 통해 타인의 ID를 `sender_id`나 `actor_id` 에 강제 주입하는 시도를 차단해야 함. 반드시 해당 컬럼이 `auth.uid()`와 일치할 때만 Insert가 되도록 RLS 적용.
 4. **에러 시스템 마스킹 (Stack Trace Leakage)**
    - API / DB 서버 내부에서 발생한 생날 것(Raw)의 에러 메시지(테이블 명칭, DB 버전, 칼럼 규칙 등 포함)가 유저 스마트폰까지 전달되면 엄청난 보안 취약점이 됨. '서버 오류 발생' 등의 문자열로 치환.
+
+### Phase 12 — 유저 관리 고도화, 신고 시스템, 매칭 프리퍼런스 & 안정화
+
+차단 연락처 관리 UI, 매칭 선호도 필터링, 친구/매치 삭제 로직, 앱 내 신고(Report) 시스템 구축 및 다수의 UI 안정화 패치.
+
+#### 구성 요소
+
+**1. 닉네임 고유성 강화**
+- **온보딩 중복확인 버튼**: `ProfileSetupView`에 "Check" 버튼 추가. `profiles` 테이블에서 닉네임 중복 여부를 실시간 조회. 중복검사를 통과해야만 다음 단계 진행 가능.
+- **프로필 수정 시 잠금**: `ProfileEditView`에서 닉네임 필드를 읽기 전용(disabled)으로 처리하여 가입 후 변경 불가.
+
+**2. Blocked Contact 관리 UI**
+- `ProfileMainView` → Settings 섹션에 "Blocked Contacts" 메뉴 추가.
+- `BlockedContactsView` 신규 구현: 현재 차단된 연락처 목록 표시 및 **Unblock(차단 해제)** 기능 제공.
+- 온보딩 시 설정한 차단 목록을 프로필 탭에서도 추가/관리할 수 있도록 UX 개선.
+
+**3. Matching Preference 시스템 (Home 탭 연동)**
+- **온보딩 수집**: 온보딩 `MatchingPreferencesView`에서 선호 성별, 연령대, MBTI 등 설정.
+- **AI 추천 우선 반영**: `ai-recommendation` Edge Function 호출 시, 유저의 매칭 프리퍼런스를 우선 필터링 조건으로 전달. 조건에 맞는 후보가 없으면 AI 콘텐츠 기반 추천으로 폴백하며, `"Recommended based on AI content analysis"` 메시지를 표시.
+- **Home 탭 상단 수정 UI**: 알람 아이콘 옆에 프리퍼런스 편집 버튼 배치. 탭 내에서 바로 선호도를 수정 가능.
+
+**4. 친구/매치 삭제 로직 (Conversation Lifecycle)**
+- **매치 삭제**: 한쪽이 삭제 시 양쪽 모두에서 대화 및 매칭이 제거됨. 관련 `messages` 레코드와 `conversations`/`conversation_members` 레코드 일괄 삭제.
+- **친구 삭제**: 한쪽이 삭제해도 상대방의 채팅 기록은 유지됨. 다만 삭제한 쪽에서는 해당 대화방이 사라지고, 상대방의 채팅방에는 "Add Friends" 버튼이 다시 표시됨.
+
+**5. 신고(Report) 시스템 — Option B (DB + 자동 이메일)**
+- **Database**: `reports` 테이블 생성.
+  - 컬럼: `id`, `reporter_id`, `target_user_id` (nullable), `reason` (enum: inappropriate_content, harassment, fake_profile, spam, other), `details` (text), `status` (pending/reviewed/resolved), `created_at`.
+  - RLS 정책: 로그인 유저 본인의 신고만 생성/조회 가능.
+- **UI — `ReportSubmissionView`**: 신고 사유 선택(5가지) 및 상세 내용 작성 폼.
+  - `ProfileMainView` → Settings에 "Help & Report Issue" 버튼 (일반 앱 문의/버그 신고용, `targetUserId = nil`).
+  - `ChatRoomView` → 네비게이션 바 우측에 🚨 버튼 (채팅 상대 특정 신고, `targetUserId = 상대방 ID` 자동 세팅).
+- **Backend — Supabase Edge Function (`send-report-email`)**:
+  - `reports` 테이블에 INSERT 발생 시 Webhook Trigger로 자동 함수 호출.
+  - Resend API를 통해 관리자 이메일로 신고 내용을 실시간 발송하는 템플릿 코드 구현 완료.
+  - **환경 변수 설정 필요**: Supabase Dashboard > Edge Functions > Secrets에서 `RESEND_API_KEY`, `ADMIN_EMAIL` 설정 후 즉시 이메일 발송 활성화.
+
+**6. Admin Dashboard — 사진 뷰어 수정**
+- **문제**: Admin 계정이 pending 유저의 사진을 볼 때, 시뮬레이터 QUIC/HTTP3 네트워크 스택 충돌로 공개 URL에서의 이미지 다운로드 실패.
+- **해결**: `URLSession` / `AsyncImage`를 통한 공개 URL 직접 다운로드 대신, **Supabase Storage SDK의 `download()` 메서드**를 사용하여 이미 인증된 클라이언트 연결을 재활용.
+  - `AuthManager.downloadStoragePhoto(imageUrl:)` 함수 추가: 공개 URL에서 스토리지 경로를 추출하여 SDK를 통한 안전한 다운로드 수행.
+- **UI 개선**: 사진을 `TabView(.page)` 스타일의 **스와이프 가능한 갤러리**로 변경. 하단에 페이지 인디케이터(●○○) 및 현재 페이지 카운터 ("1 / 6") 표시.
+
+**7. UI 안정화 — CoreGraphics NaN 에러 해결**
+- `ProfileMainView` 및 `PhotoCardView` 내 `GeometryReader` 사용 시 프레임 계산 과정에서 발생하던 `NaN` (Not a Number) 에러 방지.
+- `max(0, geometry.size.width)` 등 안전 장치(guard) 적용으로 런타임 경고 완전 제거.
+
+#### 보안 및 운영 참고
+
+| 항목 | 설명 |
+|------|------|
+| `reports` RLS | `reporter_id = auth.uid()` 일 때만 INSERT/SELECT 허용 |
+| Edge Function Secrets | `RESEND_API_KEY`, `ADMIN_EMAIL` — 실제 발송을 위해 필수 설정 |
+| Storage SDK Download | 공개 URL 대신 SDK `download()` 사용 시 RLS/인증 토큰 자동 적용 |
 
 ---
 

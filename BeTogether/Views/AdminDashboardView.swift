@@ -66,9 +66,11 @@ struct AdminUserCardView: View {
     @State private var photos: [UIImage] = []
     @State private var isLoadingPhotos = false
     @State private var isProcessing = false
+    @State private var currentPhotoIndex = 0
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Header
             HStack {
                 VStack(alignment: .leading) {
                     Text(user.nickname ?? "Unknown")
@@ -88,27 +90,46 @@ struct AdminUserCardView: View {
                     .cornerRadius(5)
             }
             
+            // Photo Gallery
             if isLoadingPhotos {
-                ProgressView()
-                    .frame(maxWidth: .infinity, minHeight: 100)
+                ProgressView("Loading photos...")
+                    .frame(maxWidth: .infinity, minHeight: 200)
             } else if photos.isEmpty {
                 Text("No Photos Available")
                     .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity, minHeight: 100)
+                    .frame(maxWidth: .infinity, minHeight: 200)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack {
+                VStack(spacing: 6) {
+                    TabView(selection: $currentPhotoIndex) {
                         ForEach(photos.indices, id: \.self) { index in
                             Image(uiImage: photos[index])
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: 100, height: 100)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .frame(maxWidth: .infinity, maxHeight: 280)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .tag(index)
                         }
                     }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .frame(height: 280)
+                    
+                    // Page indicator
+                    HStack(spacing: 6) {
+                        ForEach(photos.indices, id: \.self) { index in
+                            Circle()
+                                .fill(index == currentPhotoIndex ? Color.btTeal : Color.gray.opacity(0.3))
+                                .frame(width: 7, height: 7)
+                        }
+                    }
+                    
+                    Text("\(currentPhotoIndex + 1) / \(photos.count)")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
                 }
             }
             
+            // Action Buttons
             HStack(spacing: 15) {
                 Button(action: {
                     Task { await rejectUser() }
@@ -152,19 +173,24 @@ struct AdminUserCardView: View {
             var loadedImages: [UIImage] = []
             
             for record in photoRecords.sorted(by: { $0.sort_order < $1.sort_order }) {
-                if let url = URL(string: record.image_url) {
-                    let (data, _) = try await URLSession.shared.data(from: url)
+                do {
+                    let data = try await AuthManager.shared.downloadStoragePhoto(imageUrl: record.image_url)
                     if let img = UIImage(data: data) {
                         loadedImages.append(img)
+                    } else {
+                        print("⚠️ Could not create UIImage from data for: \(record.image_url)")
                     }
+                } catch {
+                    print("⚠️ Failed to download photo via storage SDK: \(error)")
                 }
             }
+            
             await MainActor.run {
                 self.photos = loadedImages
                 isLoadingPhotos = false
             }
         } catch {
-            print("Failed to load photos for user \(user.id): \(error)")
+            print("❌ Failed to fetch photo records for user \(user.id): \(error)")
             await MainActor.run { isLoadingPhotos = false }
         }
     }

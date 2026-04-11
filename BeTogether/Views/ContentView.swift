@@ -4,6 +4,7 @@ struct ContentView: View {
     @State private var showSplash = true
     @EnvironmentObject var userSession: UserSessionViewModel
     @StateObject private var router = OnboardingRouter()
+    @Environment(\.scenePhase) private var scenePhase
     
     var body: some View {
         ZStack {
@@ -73,10 +74,28 @@ struct ContentView: View {
                 }
             }
         }
+        .overlay(NotificationAlertOverlay())
         .environmentObject(router)
         .animation(.default, value: router.authState)
         .animation(.default, value: userSession.isLoggedIn)
         .animation(.default, value: showSplash)
+        .onAppear {
+            if let userId = AuthManager.shared.currentUserId {
+                NotificationManager.shared.setupRealtime(for: userId)
+                Task { await NotificationManager.shared.fetchUnreadCount(for: userId) }
+            }
+        }
+        .onChange(of: userSession.isLoggedIn) { _, loggedIn in
+            if loggedIn, let id = AuthManager.shared.currentUserId {
+                NotificationManager.shared.setupRealtime(for: id)
+                Task { await NotificationManager.shared.fetchUnreadCount(for: id) }
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                NotificationManager.shared.reconnectIfNeeded()
+            }
+        }
     }
 }
 

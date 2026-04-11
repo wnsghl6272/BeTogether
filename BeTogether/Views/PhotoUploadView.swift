@@ -197,30 +197,43 @@ struct PhotoUploadView: View {
                 // 1. Process and upload each photo
                 for (index, slot) in slots.enumerated() {
                     if let image = slot.image {
-                        // Compress and resize image to max 1080px to save storage and CDN bandwidth
-                        let maxSize: CGFloat = 1080.0
+                        // Compress and resize image to max 800px for optimal storage/quality balance
+                        let maxSize: CGFloat = 800.0
                         let scale = min(maxSize/image.size.width, maxSize/image.size.height)
                         let newSize = image.size.width > maxSize || image.size.height > maxSize
                                     ? CGSize(width: image.size.width * scale, height: image.size.height * scale)
                                     : image.size
                         
                         let format = UIGraphicsImageRendererFormat()
-                        format.scale = 1 // Use 1 to rely on pixel size, not screen scale
+                        format.scale = 1
                         let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
                         let resizedImage = renderer.image { _ in
                             image.draw(in: CGRect(origin: .zero, size: newSize))
                         }
                         
-                        guard let imageData = resizedImage.jpegData(compressionQuality: 0.8) else {
+                        // Try HEIC first (50% smaller than JPEG), fallback to JPEG
+                        let imageData: Data
+                        let fileExtension: String
+                        let contentType: String
+                        
+                        if let heicData = resizedImage.heicData() {
+                            imageData = heicData
+                            fileExtension = "heic"
+                            contentType = "image/heic"
+                        } else if let jpegData = resizedImage.jpegData(compressionQuality: 0.6) {
+                            imageData = jpegData
+                            fileExtension = "jpg"
+                            contentType = "image/jpeg"
+                        } else {
                             print("Failed to compress image at slot \(index)")
                             continue
                         }
                         
                         // Upload to Storage
                         let filename = UUID().uuidString
-                        let path = "\(userId)/\(filename).jpg"
+                        let path = "\(userId)/\(filename).\(fileExtension)"
                         
-                        let publicUrl = try await AuthManager.shared.uploadUserPhoto(data: imageData, path: path)
+                        let publicUrl = try await AuthManager.shared.uploadUserPhoto(data: imageData, path: path, contentType: contentType)
                         
                         // Insert into DB
                         try await AuthManager.shared.saveUserPhotoRecord(

@@ -2,13 +2,16 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
+    @StateObject private var notifManager = NotificationManager.shared
+    @State private var showPreferences = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Top Navigation
-            HStack {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Top Navigation
+                HStack {
                 // Logo / Brand (Selected State)
-                Text("Honsyl")
+                Text("HONSYL")
                     .font(.custom("ArialRoundedMTBold", size: 24))
                     .foregroundColor(.btTeal)
                     .shadow(color: .btTeal.opacity(0.3), radius: 2, x: 0, y: 1)
@@ -17,14 +20,26 @@ struct HomeView: View {
                 
                 HStack(spacing: 16) {
                     // Alerts Icon
-                    Button(action: {}) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.gray)
+                    NavigationLink(destination: NotificationView()) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.gray)
+                            
+                            if notifManager.unreadCount > 0 {
+                                Text("\(notifManager.unreadCount)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(4)
+                                    .background(Color.red)
+                                    .clipShape(Circle())
+                                    .offset(x: 8, y: -6)
+                            }
+                        }
                     }
                     
-                    // Settings Icon
-                    Button(action: {}) {
+                    // Matching Preferences
+                    Button(action: { showPreferences = true }) {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 20))
                             .foregroundColor(.gray)
@@ -39,8 +54,13 @@ struct HomeView: View {
             AiChatInterfaceView()
                 .padding(.top, 10)
                 .background(Color.btIvory)
+            }
+            .background(Color.btIvory)
+            .navigationBarHidden(true)
+            .sheet(isPresented: $showPreferences) {
+                MatchingPreferenceEditView()
+            }
         }
-        .background(Color.btIvory)
     }
 }
 

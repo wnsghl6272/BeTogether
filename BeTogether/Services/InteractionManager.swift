@@ -102,9 +102,17 @@ class InteractionManager {
             .setHeader(name: "Authorization", value: "Bearer \(token)")
             .execute().value
             
+        let traits: [UserTraitDBResponse] = (try? await client.from("user_traits")
+            .select("user_id, mbti")
+            .in("user_id", values: friendIds)
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute().value) ?? []
+            
         var matchedUsers: [User] = []
         
         for p in profiles {
+            let userTrait = traits.first(where: { $0.user_id == p.id })
+            
             // Re-use logic for photo fetch and age calculation
             var fetchedImageName = "profile_korean_1"
             if let userPhotos = try? await AuthManager.shared.fetchUserPhotos(userId: p.id), let firstPhoto = userPhotos.first {
@@ -122,7 +130,7 @@ class InteractionManager {
                 age: calculatedAge,
                 region: "Matched",
                 distance: 0,
-                mbti: "N/A",
+                mbti: userTrait?.mbti ?? "N/A",
                 isOnline: true,
                 isVerified: true,
                 imageName: fetchedImageName,
@@ -180,7 +188,22 @@ class InteractionManager {
     /// Helper to convert a raw Profile DB response to a `User` model array
     private func convertProfilesToUsers(_ profiles: [ProfileResponse], defaultStatus: String) async -> [User] {
         var users: [User] = []
+        let targetIds = profiles.map { $0.id }
+        
+        var traits: [UserTraitDBResponse] = []
+        if !targetIds.isEmpty {
+            let token = await AuthManager.shared.fetchCurrentAccessToken() ?? ""
+            let client = AuthManager.shared.client
+            traits = (try? await client.from("user_traits")
+                .select("user_id, mbti")
+                .in("user_id", values: targetIds)
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute().value) ?? []
+        }
+        
         for p in profiles {
+            let userTrait = traits.first(where: { $0.user_id == p.id })
+            
             var fetchedImageName = "profile_korean_1"
             if let userPhotos = try? await AuthManager.shared.fetchUserPhotos(userId: p.id), let firstPhoto = userPhotos.first {
                 fetchedImageName = firstPhoto.image_url
@@ -197,7 +220,7 @@ class InteractionManager {
                 age: calculatedAge,
                 region: "App User",
                 distance: 0,
-                mbti: "N/A",
+                mbti: userTrait?.mbti ?? "N/A",
                 isOnline: true,
                 isVerified: true,
                 imageName: fetchedImageName,
@@ -224,6 +247,11 @@ class InteractionManager {
         let height: String?
         let mbti: String?
     }
+    
+    struct UserTraitDBResponse: Decodable {
+        let user_id: String
+        let mbti: String?
+    }
 
     /// Fetches users who have liked the active user
     func fetchPendingLikes() async throws -> [User] {
@@ -243,6 +271,74 @@ class InteractionManager {
             .setHeader(name: "Authorization", value: "Bearer \(token)")
             .execute().value
         return await convertProfilesToUsers(profiles, defaultStatus: "Your Friend")
+    }
+    
+    /// Unmatch: delete the match record, related conversation, and interactions
+    func unmatch(targetUserId: String) async throws {
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
+              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token) else {
+            throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        let client = AuthManager.shared.client
+        
+        // Delete match record (either direction)
+        let _ = try await client.from("matches")
+            .delete()
+            .or("and(user1_id.eq.\(currentUserId),user2_id.eq.\(targetUserId)),and(user1_id.eq.\(targetUserId),user2_id.eq.\(currentUserId))")
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute()
+        
+        // Delete related interactions (both directions)
+        let _ = try? await client.from("user_interactions")
+            .delete()
+            .or("and(from_user.eq.\(currentUserId),to_user.eq.\(targetUserId)),and(from_user.eq.\(targetUserId),to_user.eq.\(currentUserId))")
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute()
+        
+        // Delete related match conversation
+        if let convId = await ChatManager.findConversationId(partnerId: targetUserId, type: "match") {
+            let _ = try? await client.from("messages")
+                .delete()
+                .eq("conversation_id", value: convId)
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute()
+            let _ = try? await client.from("conversation_members")
+                .delete()
+                .eq("conversation_id", value: convId)
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute()
+            let _ = try? await client.from("conversations")
+                .delete()
+                .eq("id", value: convId)
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute()
+        }
+    }
+    
+    /// Remove friend: delete friendship record + remove self from conversation (partner keeps chat)
+    func removeFriend(targetUserId: String) async throws {
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
+              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token) else {
+            throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        let client = AuthManager.shared.client
+        
+        // 1. Delete friendship record (both directions)
+        let _ = try? await client.from("friendships")
+            .delete()
+            .or("and(user1_id.eq.\(currentUserId),user2_id.eq.\(targetUserId)),and(user1_id.eq.\(targetUserId),user2_id.eq.\(currentUserId))")
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute()
+        
+        // 2. Remove only the current user from conversation_members (partner keeps the conversation & messages)
+        if let convId = await ChatManager.findConversationId(partnerId: targetUserId, type: "friend") {
+            let _ = try? await client.from("conversation_members")
+                .delete()
+                .eq("conversation_id", value: convId)
+                .eq("user_id", value: currentUserId)
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute()
+        }
     }
     
     // MARK: - Daily Picks Recommendations
@@ -313,9 +409,17 @@ class InteractionManager {
             .setHeader(name: "Authorization", value: "Bearer \(token)")
             .execute().value
             
+        let traits: [UserTraitDBResponse] = (try? await client.from("user_traits")
+            .select("user_id, mbti")
+            .in("user_id", values: targetIds)
+            .setHeader(name: "Authorization", value: "Bearer \(token)")
+            .execute().value) ?? []
+            
         var finalUsers: [(user: User, isUnlocked: Bool)] = []
         for pick in picks {
             if let profile = profiles.first(where: { $0.id == pick.target_user_id }) {
+                let userTrait = traits.first(where: { $0.user_id == profile.id })
+                
                 var fetchedImageName = "profile_korean_1"
                 if let userPhotos = try? await AuthManager.shared.fetchUserPhotos(userId: profile.id), let firstPhoto = userPhotos.first {
                     fetchedImageName = firstPhoto.image_url
@@ -332,7 +436,7 @@ class InteractionManager {
                     age: calculatedAge,
                     region: "App User",
                     distance: Int.random(in: 2...15), // Placeholder for Distance
-                    mbti: profile.mbti ?? "ISFP",    // Uses default if not set
+                    mbti: userTrait?.mbti ?? "ISFP",    // Uses default if not set or found
                     isOnline: false,
                     isVerified: true,
                     imageName: fetchedImageName,

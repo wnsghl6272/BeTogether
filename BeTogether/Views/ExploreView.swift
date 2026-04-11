@@ -112,7 +112,9 @@ struct ExploreView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(matchedUsers) { user in
-                                    MatchCardView(user: user)
+                                    MatchCardView(user: user, onUnmatch: {
+                                        unmatchUser(user)
+                                    })
                                 }
                             }
                             .padding(.horizontal)
@@ -200,7 +202,9 @@ struct ExploreView: View {
                     } else {
                         VStack(spacing: 12) {
                             ForEach(friends) { friend in
-                                FriendRowView(user: friend)
+                                FriendRowView(user: friend, onRemove: {
+                                    removeFriendUser(friend)
+                                })
                             }
                         }
                         .padding(.horizontal)
@@ -234,6 +238,22 @@ struct ExploreView: View {
             }
         }
     }
+    
+    private func unmatchUser(_ user: User) {
+        guard let id = user.supabaseId else { return }
+        withAnimation { matchedUsers.removeAll { $0.id == user.id } }
+        Task {
+            try? await InteractionManager.shared.unmatch(targetUserId: id)
+        }
+    }
+    
+    private func removeFriendUser(_ user: User) {
+        guard let id = user.supabaseId else { return }
+        withAnimation { friends.removeAll { $0.id == user.id } }
+        Task {
+            try? await InteractionManager.shared.removeFriend(targetUserId: id)
+        }
+    }
 }
 
 // MARK: - Subviews
@@ -241,26 +261,54 @@ struct ExploreView: View {
 struct PendingLikeCardView: View {
     let user: User
     let onLikeBack: (User) -> Void
+    @State private var isUnlocked = false
     
     var body: some View {
-        VStack(spacing: 8) {
-            ProfileAvatarView(imageUrl: user.imageName)
-            
-            Text(user.name)
-                .font(.subheadline)
-                .fontWeight(.bold)
-            
-            Button("Like Back") {
-                onLikeBack(user)
+        ZStack {
+            VStack(spacing: 8) {
+                ProfileAvatarView(imageUrl: user.imageName)
+                    .blur(radius: isUnlocked ? 0 : 12)
+                    .clipShape(Circle())
+                
+                Text(isUnlocked ? user.name : "???")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                
+                if isUnlocked {
+                    Button("Like Back") {
+                        onLikeBack(user)
+                    }
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .background(Color.pink)
+                    .cornerRadius(15)
+                } else {
+                    Button("Unlock") {
+                        withAnimation(.spring()) {
+                            isUnlocked = true
+                        }
+                    }
+                    .font(.caption.bold())
+                    .foregroundColor(.btTeal)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.btTeal, lineWidth: 1))
+                }
             }
-            .font(.caption)
-            .foregroundColor(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-            .background(Color.pink)
-            .cornerRadius(15)
+            
+            if !isUnlocked {
+                Image(systemName: "lock.fill")
+                    .foregroundColor(.white)
+                    .font(.title2)
+                    .shadow(radius: 2)
+                    .offset(y: -25)
+            }
         }
         .padding(10)
+        .frame(width: 130, height: 165)
         .background(Color(.systemBackground))
         .cornerRadius(15)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 4)
@@ -269,6 +317,8 @@ struct PendingLikeCardView: View {
 
 struct MatchCardView: View {
     let user: User
+    var onUnmatch: (() -> Void)? = nil
+    @State private var showUnmatchAlert = false
     
     var body: some View {
         VStack(spacing: 8) {
@@ -279,54 +329,115 @@ struct MatchCardView: View {
                 .font(.subheadline)
                 .fontWeight(.bold)
             
-            Button("Chat") {
-                // Future Implementation
+            HStack(spacing: 8) {
+                Button("Chat") {
+                    Task {
+                        if let partnerId = user.supabaseId,
+                           let convId = await ChatManager.findConversationId(partnerId: partnerId, type: "match") {
+                            let session = ChatSession(conversationId: convId, partner: user)
+                            await MainActor.run {
+                                NavigationManager.shared.pendingChatSession = session
+                                NavigationManager.shared.selectedTab = 3
+                            }
+                        }
+                    }
+                }
+                .font(.caption)
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.btTeal)
+                .cornerRadius(15)
+                
+                Button {
+                    showUnmatchAlert = true
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(6)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(Circle())
+                }
             }
-            .font(.caption)
-            .foregroundColor(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-            .background(Color.btTeal)
-            .cornerRadius(15)
         }
         .padding(10)
         .background(Color(.systemBackground))
         .cornerRadius(15)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 4)
+        .alert("Unmatch", isPresented: $showUnmatchAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Unmatch", role: .destructive) { onUnmatch?() }
+        } message: {
+            Text("Are you sure you want to unmatch \(user.name)? This will also delete your chat history.")
+        }
     }
 }
 
 struct FriendRowView: View {
     let user: User
+    var onRemove: (() -> Void)? = nil
+    @State private var showRemoveAlert = false
     
     var body: some View {
         HStack {
-            ProfileAvatarView(imageUrl: user.imageName)
-                .frame(width: 50, height: 50)
-            
-            VStack(alignment: .leading) {
-                Text(user.name)
-                    .font(.headline)
-                if !user.job.isEmpty {
-                    Text(user.job)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+            Button(action: {
+                Task {
+                    if let partnerId = user.supabaseId,
+                       let convId = await ChatManager.findConversationId(partnerId: partnerId, type: "friend") {
+                        let session = ChatSession(conversationId: convId, partner: user)
+                        await MainActor.run {
+                            NavigationManager.shared.pendingChatSession = session
+                            NavigationManager.shared.selectedTab = 3
+                        }
+                    }
+                }
+            }) {
+                HStack {
+                    ProfileAvatarView(imageUrl: user.imageName, size: 44)
+                    
+                    VStack(alignment: .leading) {
+                        Text(user.name)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        if !user.job.isEmpty {
+                            Text(user.job)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "message.fill")
+                        .foregroundColor(.btTeal)
                 }
             }
             
-            Spacer()
-            
-            Image(systemName: "message")
-                .foregroundColor(.btTeal)
+            Button {
+                showRemoveAlert = true
+            } label: {
+                Image(systemName: "person.badge.minus")
+                    .foregroundColor(.red)
+                    .padding(8)
+            }
+            .buttonStyle(.plain)
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+        .alert("Remove Friend", isPresented: $showRemoveAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) { onRemove?() }
+        } message: {
+            Text("Are you sure you want to remove \(user.name)? Chat history will also be deleted.")
+        }
     }
 }
 
 struct ProfileAvatarView: View {
     let imageUrl: String
+    var size: CGFloat = 80
     
     var body: some View {
         Group {
@@ -349,7 +460,7 @@ struct ProfileAvatarView: View {
                     .aspectRatio(contentMode: .fill)
             }
         }
-        .frame(width: 80, height: 80)
+        .frame(width: size, height: size)
         .clipShape(Circle())
         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
     }

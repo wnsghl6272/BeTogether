@@ -29,3 +29,11 @@ fastlane/test_output
 .vscode/
 .idea/
 build_log.txt
+
+# Temporary Dev/Debug Files
+*.rb
+*.log
+*.sql
+test*.swift
+sql_test.swift
+*.js

@@ -209,6 +209,38 @@ class AuthManager: ObservableObject {
         }
     }
     
+    struct BlockedContactRecord: Codable, Identifiable {
+        let id: String
+        let hashed_phone: String
+        let created_at: String
+    }
+    
+    /// 차단된 연락처 목록을 조회합니다.
+    func fetchBlockedContacts() async throws -> [BlockedContactRecord] {
+        guard let sub = getUserIdFromToken(), let token = currentAccessToken else {
+            throw NSError(domain: "AuthAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "Require authentication"])
+        }
+        
+        let response: [BlockedContactRecord] = try await client.database
+            .from("blocked_contacts")
+            .select("id, hashed_phone, created_at")
+            .eq("user_id", value: sub)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        
+        return response
+    }
+    
+    /// 차단된 연락처를 삭제합니다.
+    func deleteBlockedContact(id: String) async throws {
+        let _ = try await client.database
+            .from("blocked_contacts")
+            .delete()
+            .eq("id", value: id)
+            .execute()
+    }
+    
     // MARK: - Email Authentication (기존 유저에 이메일 추가)
     
     /// 기존 폰 인증 유저에 복구 이메일을 추가합니다.
@@ -328,8 +360,8 @@ class AuthManager: ObservableObject {
         let is_verified: Bool
     }
     
-    func uploadUserPhoto(data: Data, path: String) async throws -> String {
-        let fileOptions = FileOptions(cacheControl: "3600", contentType: "image/jpeg", upsert: true)
+    func uploadUserPhoto(data: Data, path: String, contentType: String = "image/jpeg") async throws -> String {
+        let fileOptions = FileOptions(cacheControl: "3600", contentType: contentType, upsert: true)
         let _ = try await client.storage.from("user_photos").upload(path, data: data, options: fileOptions)
         let publicURL = try client.storage.from("user_photos").getPublicURL(path: path)
         return publicURL.absoluteString
@@ -359,6 +391,16 @@ class AuthManager: ObservableObject {
             .value
         
         return response
+    }
+    
+    /// Downloads photo data via Supabase Storage SDK (bypasses public URL / QUIC issues)
+    func downloadStoragePhoto(imageUrl: String) async throws -> Data {
+        let marker = "/user_photos/"
+        guard let range = imageUrl.range(of: marker) else {
+            throw URLError(.badURL)
+        }
+        let storagePath = String(imageUrl[range.upperBound...])
+        return try await client.storage.from("user_photos").download(path: storagePath)
     }
     
     func deleteAllUserPhotos(userId: String) async throws {

@@ -105,20 +105,90 @@ struct ProfileSetupView: View {
         }
     }
     
+    @State private var nicknameCheckStatus: String? = nil
+    @State private var isNicknameAvailable: Bool = false
+    @State private var isCheckingNickname: Bool = false
+    
     var nicknameStep: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 24) {
             Text("What's your nickname?")
                 .font(.btHeader)
                 .foregroundColor(.btTeal)
             
-            BTTextField(placeholder: "Nickname", text: $nickname)
-                .padding(.horizontal, 40)
+            Text("This will be your unique ID for friend requests.")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            HStack(spacing: 10) {
+                BTTextField(placeholder: "Nickname", text: $nickname)
+                    .onChange(of: nickname) { _, _ in
+                        // Reset availability when nickname changes
+                        isNicknameAvailable = false
+                        nicknameCheckStatus = nil
+                    }
+                
+                Button(action: {
+                    checkNicknameDuplicate()
+                }) {
+                    if isCheckingNickname {
+                        ProgressView()
+                            .frame(width: 80, height: 48)
+                    } else {
+                        Text("Check")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.white)
+                            .frame(width: 80, height: 48)
+                            .background(nickname.trimmingCharacters(in: .whitespaces).isEmpty ? Color.gray : Color.btTeal)
+                            .cornerRadius(12)
+                    }
+                }
+                .disabled(nickname.trimmingCharacters(in: .whitespaces).isEmpty || isCheckingNickname)
+            }
+            .padding(.horizontal, 40)
+            
+            if let status = nicknameCheckStatus {
+                HStack(spacing: 6) {
+                    Image(systemName: isNicknameAvailable ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    Text(status)
+                }
+                .font(.caption)
+                .foregroundColor(isNicknameAvailable ? .green : .red)
+                .animation(.easeIn, value: nicknameCheckStatus)
+            }
             
             BTButton(title: "Next", action: {
                 userSession.nickname = nickname
                 curStep = .gender
-            }, isDisabled: nickname.isEmpty)
+            }, isDisabled: !isNicknameAvailable)
             .padding(.horizontal, 40)
+        }
+    }
+    
+    private func checkNicknameDuplicate() {
+        let trimmed = nickname.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        
+        isCheckingNickname = true
+        Task {
+            do {
+                let existingId = try await InteractionManager.shared.fetchUserByNickname(trimmed)
+                await MainActor.run {
+                    isCheckingNickname = false
+                    if existingId != nil {
+                        isNicknameAvailable = false
+                        nicknameCheckStatus = "This nickname is already taken."
+                    } else {
+                        isNicknameAvailable = true
+                        nicknameCheckStatus = "This nickname is available!"
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isCheckingNickname = false
+                    isNicknameAvailable = false
+                    nicknameCheckStatus = "Error checking nickname."
+                }
+            }
         }
     }
     

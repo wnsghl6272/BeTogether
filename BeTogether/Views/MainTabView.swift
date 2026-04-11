@@ -2,10 +2,10 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
-    @State private var selectedTab: Int = 0
+    @StateObject private var navManager = NavigationManager.shared
     
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $navManager.selectedTab) {
             // Tab 1: Home
             HomeView()
                 .tabItem {
@@ -37,6 +37,7 @@ struct MainTabView: View {
                     Text("Chat")
                 }
                 .tag(3)
+                .badge(navManager.unreadChatCount == 0 ? nil : "\(navManager.unreadChatCount)")
             
             // Tab 5: Profile
             ProfileMainView()

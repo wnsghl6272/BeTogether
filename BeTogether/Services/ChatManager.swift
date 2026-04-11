@@ -2,23 +2,150 @@ import Foundation
 import Supabase
 import Combine
 
+struct ChatSession: Identifiable, Equatable {
+    var id: String { conversationId }
+    let conversationId: String
+    let partner: User
+    var lastMessage: String?
+    var unreadCount: Int = 0
+    
+    static func == (lhs: ChatSession, rhs: ChatSession) -> Bool {
+        return lhs.conversationId == rhs.conversationId && lhs.lastMessage == rhs.lastMessage && lhs.unreadCount == rhs.unreadCount
+    }
+}
+
 struct ChatMessage: Identifiable, Codable, Equatable {
     let id: String
     let sender_id: String
     let receiver_id: String
     let content: String
     let created_at: String
+    let conversation_id: String?
 }
 
 @MainActor
 class ChatManager: ObservableObject {
+    
+    // MARK: - Conversation-based session fetching
+    
+    struct ConversationRow: Decodable {
+        let conversation_id: String
+        let partner_id: String
+        let partner_nickname: String?
+        let partner_occupation: String?
+        let partner_birth_date: String?
+        let partner_height: String?
+        let last_message: String?
+        let last_message_at: String?
+        let unread_count: Int
+    }
+    
+    static func fetchChatSessions(forType type: String) async -> [ChatSession] {
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken() else { return [] }
+        
+        let client = AuthManager.shared.client
+        
+        do {
+            struct ConvTypeParam: Encodable { let conv_type: String }
+            let rows: [ConversationRow] = try await client.rpc("get_my_conversations", params: ConvTypeParam(conv_type: type))
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute()
+                .value
+            
+            var sessions: [ChatSession] = []
+            for row in rows {
+                // Fetch photo for partner
+                var fetchedImageName = "profile_korean_1"
+                if let userPhotos = try? await AuthManager.shared.fetchUserPhotos(userId: row.partner_id), let firstPhoto = userPhotos.first {
+                    fetchedImageName = firstPhoto.image_url
+                }
+                
+                let birthYearString = String((row.partner_birth_date ?? "").prefix(4))
+                let birthYear = Int(birthYearString) ?? 2000
+                let currentYear = Calendar.current.component(.year, from: Date())
+                let calculatedAge = currentYear - birthYear
+                
+                let partner = User(
+                    supabaseId: row.partner_id,
+                    name: row.partner_nickname ?? "Unknown",
+                    age: calculatedAge,
+                    region: type == "match" ? "Matched" : "Friend",
+                    distance: 0,
+                    mbti: "N/A",
+                    isOnline: true,
+                    isVerified: true,
+                    imageName: fetchedImageName,
+                    job: row.partner_occupation ?? "",
+                    height: Int(row.partner_height ?? "0") ?? 0,
+                    university: "",
+                    drinking: "",
+                    smoking: "",
+                    oneLineIntro: "",
+                    selfIntro: "",
+                    imageNames: [fetchedImageName]
+                )
+                
+                let session = ChatSession(
+                    conversationId: row.conversation_id,
+                    partner: partner,
+                    lastMessage: row.last_message,
+                    unreadCount: row.unread_count
+                )
+                sessions.append(session)
+            }
+            return sessions
+        } catch {
+            print("fetchChatSessions error: \(error)")
+            return []
+        }
+    }
+    
+    /// Find conversation_id between current user and partner
+    static func findConversationId(partnerId: String, type: String) async -> String? {
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
+              let partnerUUID = UUID(uuidString: partnerId) else { return nil }
+        
+        let client = AuthManager.shared.client
+        do {
+            struct FindConvParams: Encodable {
+                let partner_uid: UUID
+                let conv_type: String
+            }
+            let result: String? = try await client.rpc("find_conversation", params: FindConvParams(partner_uid: partnerUUID, conv_type: type))
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute()
+                .value
+            return result
+        } catch {
+            print("findConversationId error: \(error)")
+            return nil
+        }
+    }
+    
+    static func markMessagesAsRead(partnerId: String) async {
+        guard let currentUserId = AuthManager.shared.currentUserId else { return }
+        do {
+            let client = AuthManager.shared.client
+            try await client.from("notifications")
+                .update(["is_read": true, "is_seen": true])
+                .eq("user_id", value: currentUserId)
+                .eq("actor_id", value: partnerId)
+                .eq("type", value: "message")
+                .execute()
+        } catch {
+            print("Failed to mark messages as read: \(error)")
+        }
+    }
+    
+    // MARK: - Instance properties for active chat room
+    
     @Published var messages: [ChatMessage] = []
     
     private var channel: RealtimeChannelV2?
     private var currentSubscriptionTask: Task<Void, Never>?
     
-    /// Load existing messages for the conversation
-    func loadMessages(partnerId: String) async {
+    /// Load existing messages for a conversation
+    func loadMessages(conversationId: String) async {
         guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
               let currentUserId = AiChatInterfaceView.extractSubFromJWT(token) else {
             return
@@ -26,11 +153,10 @@ class ChatManager: ObservableObject {
         
         do {
             let client = AuthManager.shared.client
-            let filter = "and(sender_id.eq.\(currentUserId),receiver_id.eq.\(partnerId)),and(sender_id.eq.\(partnerId),receiver_id.eq.\(currentUserId))"
             
             let fetchedMessages: [ChatMessage] = try await client.from("messages")
-                .select()
-                .or(filter)
+                .select("id, sender_id, receiver_id, content, created_at, conversation_id")
+                .eq("conversation_id", value: conversationId)
                 .order("created_at", ascending: true)
                 .setHeader(name: "Authorization", value: "Bearer \(token)")
                 .execute()
@@ -38,15 +164,15 @@ class ChatManager: ObservableObject {
             
             self.messages = fetchedMessages
             
-            // Re-subscribe to realtime events exclusively for this session
-            await setupRealtime(currentUserId: currentUserId, partnerId: partnerId)
+            // Subscribe to realtime events for this conversation
+            await setupRealtime(conversationId: conversationId, currentUserId: currentUserId)
             
         } catch {
             print("Failed to load messages:", error)
         }
     }
     
-    func sendMessage(to partnerId: String, content: String) async {
+    func sendMessage(to partnerId: String, content: String, conversationId: String) async {
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
               let currentUserId = AiChatInterfaceView.extractSubFromJWT(token) else {
@@ -57,9 +183,15 @@ class ChatManager: ObservableObject {
             let sender_id: String
             let receiver_id: String
             let content: String
+            let conversation_id: String
         }
         
-        let newMessage = InsertMessage(sender_id: currentUserId, receiver_id: partnerId, content: content.trimmingCharacters(in: .whitespacesAndNewlines))
+        let newMessage = InsertMessage(
+            sender_id: currentUserId,
+            receiver_id: partnerId,
+            content: content.trimmingCharacters(in: .whitespacesAndNewlines),
+            conversation_id: conversationId
+        )
         
         do {
             let client = AuthManager.shared.client
@@ -71,9 +203,6 @@ class ChatManager: ObservableObject {
                 .execute()
                 .value
             
-            // Appends locally to avoid waiting for realtime if possible, or realtime might handle it.
-            // Supabase Realtime might duplicate if we manually append. 
-            // We append manually since local state changes faster.
             if !self.messages.contains(where: { $0.id == insertedMessage.id }) {
                 self.messages.append(insertedMessage)
             }
@@ -83,22 +212,22 @@ class ChatManager: ObservableObject {
         }
     }
     
-    private func setupRealtime(currentUserId: String, partnerId: String) async {
+    private func setupRealtime(conversationId: String, currentUserId: String) async {
         let client = AuthManager.shared.client
         
-        // Disconnect old channel if iterating
         if let existingChannel = channel {
             await existingChannel.unsubscribe()
         }
         currentSubscriptionTask?.cancel()
         
-        let newChannel = client.realtimeV2.channel("public:messages")
+        let newChannel = client.realtimeV2.channel("conv:\(conversationId)")
         
         currentSubscriptionTask = Task {
             let stream = newChannel.postgresChange(
                 InsertAction.self,
                 schema: "public",
-                table: "messages"
+                table: "messages",
+                filter: "conversation_id=eq.\(conversationId)"
             )
             
             try? await newChannel.subscribeWithError()
@@ -106,19 +235,12 @@ class ChatManager: ObservableObject {
             for await change in stream {
                 let record = change.record
                 
-                // Manual parse since dictionary
                 do {
                     let jsonData = try JSONEncoder().encode(record)
                     let message = try JSONDecoder().decode(ChatMessage.self, from: jsonData)
                     
-                    // Only process messages for this connection
-                    let isRelevant = (message.sender_id == currentUserId && message.receiver_id == partnerId) ||
-                                     (message.sender_id == partnerId && message.receiver_id == currentUserId)
-                    
-                    if isRelevant {
-                        if !self.messages.contains(where: { $0.id == message.id }) {
-                            self.messages.append(message)
-                        }
+                    if !self.messages.contains(where: { $0.id == message.id }) {
+                        self.messages.append(message)
                     }
                 } catch {
                     print("Could not decode incoming realtime message", error)

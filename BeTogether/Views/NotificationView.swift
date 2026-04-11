@@ -1,102 +1,165 @@
 import SwiftUI
+import Supabase
+
+struct DBNotification: Identifiable, Codable {
+    let id: UUID
+    let userId: UUID
+    let actorId: UUID
+    let type: String
+    let message: String?
+    let isRead: Bool
+    var isSeen: Bool?
+    let createdAt: Date
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case actorId = "actor_id"
+        case type
+        case message
+        case isRead = "is_read"
+        case isSeen = "is_seen"
+        case createdAt = "created_at"
+    }
+}
+
+@MainActor
+class NotificationCenterViewModel: ObservableObject {
+    @Published var notifications: [DBNotification] = []
+    @Published var isLoading = false
+    
+    func fetchNotifications(userId: String) async {
+        self.isLoading = true
+        do {
+            let fetched: [DBNotification] = try await AuthManager.shared.client
+                .from("notifications")
+                .select()
+                .eq("user_id", value: userId)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+                
+                self.notifications = fetched
+                self.isLoading = false
+            
+            // Mark as seen immediately on fetch
+            let unseenIds = fetched.filter { !($0.isSeen ?? false) }.map { $0.id }
+            if !unseenIds.isEmpty {
+                _ = try await AuthManager.shared.client
+                    .from("notifications")
+                    .update(["is_seen": true])
+                    .in("id", values: unseenIds)
+                    .execute()
+                
+                await MainActor.run {
+                    NotificationManager.shared.resetUnread()
+                }
+            }
+        } catch {
+            print("Failed to fetch notifications: \(error)")
+            self.isLoading = false
+        }
+    }
+    
+    func deleteNotification(id: UUID) {
+        Task {
+            do {
+                try await AuthManager.shared.client
+                    .from("notifications")
+                    .delete()
+                    .eq("id", value: id)
+                    .execute()
+                
+                self.notifications.removeAll { $0.id == id }
+            } catch {
+                print("Failed to delete notification: \(error)")
+            }
+        }
+    }
+}
 
 struct NotificationView: View {
-    let notifications = [
-        NotificationItem(type: .friendRequest, user: "Alice", time: "2m ago"),
-        NotificationItem(type: .sparkReceived, user: "Bob", time: "1h ago"),
-        NotificationItem(type: .profileView, user: "Charlie", time: "3h ago"),
-        NotificationItem(type: .friendRequest, user: "David", time: "Yesterday"),
-        NotificationItem(type: .sparkReceived, user: "Eve", time: "2 days ago")
-    ]
+    @StateObject private var viewModel = NotificationCenterViewModel()
+    @EnvironmentObject var userSession: UserSessionViewModel
     
     var body: some View {
-        NavigationView {
-            List(notifications) { item in
-                HStack(spacing: 15) {
-                    // Icon based on type
-                    ZStack {
-                        Circle()
-                            .fill(item.type.color.opacity(0.2))
-                            .frame(width: 50, height: 50)
-                        
-                        Image(systemName: item.type.icon)
-                            .foregroundColor(item.type.color)
-                            .font(.title2)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        // Message construction
-                        Text(item.message)
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                        
-                        Text(item.time)
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    Spacer()
-                    
-                    // Action Button (if relevant)
-                    if item.type == .friendRequest {
-                        Button("Accept") {
-                            // Action
+        Group {
+            if viewModel.isLoading {
+                ProgressView("Loading notifications...")
+            } else if viewModel.notifications.isEmpty {
+                Text("No notifications yet.")
+                    .foregroundColor(.gray)
+            } else {
+                List {
+                    ForEach(viewModel.notifications) { item in
+                        HStack(spacing: 15) {
+                            ZStack {
+                                Circle()
+                                    .fill(getColor(for: item.type).opacity(0.2))
+                                    .frame(width: 50, height: 50)
+                                
+                                Image(systemName: getIcon(for: item.type))
+                                    .foregroundColor(getColor(for: item.type))
+                                    .font(.title2)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.message ?? "")
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                
+                                Text(item.createdAt, style: .time)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
                         }
-                        .font(.caption.bold())
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.btTeal)
-                        .cornerRadius(15)
+                        .padding(.vertical, 8)
+                        .opacity((item.isSeen ?? false) ? 0.6 : 1.0)
                     }
+                    .onDelete(perform: deleteItems)
                 }
-                .padding(.vertical, 8)
+                .listStyle(.plain)
             }
-            .listStyle(.plain)
-            .navigationTitle("Notifications")
+        }
+        .navigationTitle("Notifications")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if let userId = AuthManager.shared.currentUserId {
+                Task {
+                    await viewModel.fetchNotifications(userId: userId)
+                }
+            }
         }
     }
-}
-
-// MARK: - Models
-
-struct NotificationItem: Identifiable {
-    let id = UUID()
-    let type: NotificationType
-    let user: String
-    let time: String
     
-    var message: String {
+    private func deleteItems(at offsets: IndexSet) {
+        for index in offsets {
+            let notification = viewModel.notifications[index]
+            viewModel.deleteNotification(id: notification.id)
+        }
+    }
+    
+    private func getIcon(for type: String) -> String {
         switch type {
-        case .friendRequest: return "\(user) sent you a friend request."
-        case .sparkReceived: return "\(user) sent you a Spark!"
-        case .profileView: return "\(user) viewed your profile."
-        }
-    }
-}
-
-enum NotificationType {
-    case friendRequest
-    case sparkReceived
-    case profileView
-    
-    var icon: String {
-        switch self {
-        case .friendRequest: return "person.badge.plus.fill"
-        case .sparkReceived: return "sparkles"
-        case .profileView: return "eye.fill"
+        case "like": return "heart.fill"
+        case "message": return "message.fill"
+        default: return "bell.fill"
         }
     }
     
-    var color: Color {
-        switch self {
-        case .friendRequest: return .blue
-        case .sparkReceived: return .yellow
-        case .profileView: return .purple
+    private func getColor(for type: String) -> Color {
+        switch type {
+        case "like": return .pink
+        case "message": return .btTeal
+        default: return .blue
         }
     }
 }
 
 #Preview {
-    NotificationView()
+    NavigationView {
+        NotificationView()
+            .environmentObject(UserSessionViewModel())
+    }
 }

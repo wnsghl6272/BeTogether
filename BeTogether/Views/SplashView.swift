@@ -23,7 +23,7 @@ struct SplashView: View {
                     }
                     
                     // Brand Name
-                    Text("Honsyl")
+                    Text("HONSYL")
                         .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundColor(.btTeal)
                 }

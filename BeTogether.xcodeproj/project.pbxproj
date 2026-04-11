@@ -8,8 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		021A35D7F76B7604C42D1D44 /* EmailVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */; };
+		06E409EFBAF07816A88CC392 /* UIImage+HEIC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4006180EF4303232FFB27F04 /* UIImage+HEIC.swift */; };
+		15E7510039D9DE785E8C1F4A /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8EA15764DEA35FACA8E5C6E /* NotificationManager.swift */; };
 		32F41EE65CCD24011E3BA36F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 098415BC677CC23C62B04632 /* Supabase */; };
 		51C828FCDDDD720D244511C3 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E486B4577D0B815468A20B24 /* AuthManager.swift */; };
+		5CE38AD211B679A099D4AE4B /* BlockedContactsManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 715E64A39878696012DB9CD9 /* BlockedContactsManagerView.swift */; };
 		69435F432F3F3593002A6F5D /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F402F3F3593002A6F5D /* LocationPermissionView.swift */; };
 		69435F442F3F3593002A6F5D /* MatchingPreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */; };
 		69435F452F3F3593002A6F5D /* NotificationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */; };
@@ -52,6 +55,7 @@
 		69E531312F60FC9A0028598B /* AiRevealEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E531302F60FC9A0028598B /* AiRevealEffectView.swift */; };
 		7DEB0056DEE9B68B06A6F9E5 /* InteractionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3141C894483AFF85CB1A790 /* InteractionManager.swift */; };
 		7F734CF3C08B242A8E8E708B /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08CDCAFE5ABDDED56503D591 /* AdminDashboardView.swift */; };
+		80CBDA49BBA9B897CB493507 /* ProfileEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13ACC6739314CAA322CAC647 /* ProfileEditView.swift */; };
 		B001 /* BeTogetherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001 /* BeTogetherApp.swift */; };
 		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002 /* ContentView.swift */; };
 		B003 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003 /* SplashView.swift */; };
@@ -85,13 +89,20 @@
 		B031 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A031 /* ExploreView.swift */; };
 		B032 /* NotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A032 /* NotificationView.swift */; };
 		B033 /* ProfileMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A033 /* ProfileMainView.swift */; };
+		B3C7416F5765234A9D92127B /* NotificationAlertOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECBEA4AD14E0F8826CDE8B3 /* NotificationAlertOverlay.swift */; };
+		D4335341F5164130380FF121 /* NavigationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14BF48EED8A25426579B9130 /* NavigationManager.swift */; };
+		E4C8BA3216094D4BE96B3B97 /* MatchingPreferenceEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6558A1E38870FF6393AFBA6 /* MatchingPreferenceEditView.swift */; };
 		E9EA5CEF9123CE5898FF66BE /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3489DB823DDEC810AD4A757B /* Config.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		08CDCAFE5ABDDED56503D591 /* AdminDashboardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdminDashboardView.swift; sourceTree = "<group>"; };
 		0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailVerificationView.swift; sourceTree = "<group>"; };
+		13ACC6739314CAA322CAC647 /* ProfileEditView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileEditView.swift; sourceTree = "<group>"; };
+		14BF48EED8A25426579B9130 /* NavigationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NavigationManager.swift; sourceTree = "<group>"; };
+		1ECBEA4AD14E0F8826CDE8B3 /* NotificationAlertOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationAlertOverlay.swift; sourceTree = "<group>"; };
 		3489DB823DDEC810AD4A757B /* Config.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		4006180EF4303232FFB27F04 /* UIImage+HEIC.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "UIImage+HEIC.swift"; sourceTree = "<group>"; };
 		69435F402F3F3593002A6F5D /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchingPreferenceView.swift; sourceTree = "<group>"; };
 		69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionView.swift; sourceTree = "<group>"; };
@@ -132,6 +143,7 @@
 		699263C92F80CA7E007156F0 /* ChatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatManager.swift; sourceTree = "<group>"; };
 		69E5312E2F60FC5B0028598B /* AiChatInterfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiChatInterfaceView.swift; sourceTree = "<group>"; };
 		69E531302F60FC9A0028598B /* AiRevealEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiRevealEffectView.swift; sourceTree = "<group>"; };
+		715E64A39878696012DB9CD9 /* BlockedContactsManagerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BlockedContactsManagerView.swift; sourceTree = "<group>"; };
 		A001 /* BeTogetherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeTogetherApp.swift; sourceTree = "<group>"; };
 		A002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A003 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
@@ -166,7 +178,9 @@
 		A032 /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationView.swift; sourceTree = "<group>"; };
 		A033 /* ProfileMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileMainView.swift; sourceTree = "<group>"; };
 		A3141C894483AFF85CB1A790 /* InteractionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InteractionManager.swift; sourceTree = "<group>"; };
+		C8EA15764DEA35FACA8E5C6E /* NotificationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		E486B4577D0B815468A20B24 /* AuthManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		E6558A1E38870FF6393AFBA6 /* MatchingPreferenceEditView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MatchingPreferenceEditView.swift; sourceTree = "<group>"; };
 		P001 /* BeTogether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeTogether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -191,6 +205,7 @@
 				3489DB823DDEC810AD4A757B /* Config.swift */,
 				E486B4577D0B815468A20B24 /* AuthManager.swift */,
 				A3141C894483AFF85CB1A790 /* InteractionManager.swift */,
+				C8EA15764DEA35FACA8E5C6E /* NotificationManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -304,6 +319,10 @@
 				A033 /* ProfileMainView.swift */,
 				0EE5CD3C509A258DB4D0F435 /* EmailVerificationView.swift */,
 				08CDCAFE5ABDDED56503D591 /* AdminDashboardView.swift */,
+				1ECBEA4AD14E0F8826CDE8B3 /* NotificationAlertOverlay.swift */,
+				13ACC6739314CAA322CAC647 /* ProfileEditView.swift */,
+				715E64A39878696012DB9CD9 /* BlockedContactsManagerView.swift */,
+				E6558A1E38870FF6393AFBA6 /* MatchingPreferenceEditView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -313,6 +332,7 @@
 			children = (
 				69435FAC2F486A9F002A6F5D /* OnboardingRouter.swift */,
 				A011 /* UserSessionViewModel.swift */,
+				14BF48EED8A25426579B9130 /* NavigationManager.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -335,6 +355,7 @@
 			children = (
 				A015 /* Color+Extensions.swift */,
 				A016 /* Font+Extensions.swift */,
+				4006180EF4303232FFB27F04 /* UIImage+HEIC.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -507,6 +528,13 @@
 				021A35D7F76B7604C42D1D44 /* EmailVerificationView.swift in Sources */,
 				7F734CF3C08B242A8E8E708B /* AdminDashboardView.swift in Sources */,
 				7DEB0056DEE9B68B06A6F9E5 /* InteractionManager.swift in Sources */,
+				D4335341F5164130380FF121 /* NavigationManager.swift in Sources */,
+				15E7510039D9DE785E8C1F4A /* NotificationManager.swift in Sources */,
+				B3C7416F5765234A9D92127B /* NotificationAlertOverlay.swift in Sources */,
+				80CBDA49BBA9B897CB493507 /* ProfileEditView.swift in Sources */,
+				06E409EFBAF07816A88CC392 /* UIImage+HEIC.swift in Sources */,
+				5CE38AD211B679A099D4AE4B /* BlockedContactsManagerView.swift in Sources */,
+				E4C8BA3216094D4BE96B3B97 /* MatchingPreferenceEditView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
