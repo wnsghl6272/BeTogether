@@ -12,8 +12,6 @@ struct ProfileSetupView: View {
         case occupation
         case height
         case university
-        case drinking
-        case smoking
         case oneLineIntro // New
         case selfIntro    // New
     }
@@ -28,8 +26,6 @@ struct ProfileSetupView: View {
     @State private var occupation: String = ""
     @State private var height: String = ""
     @State private var university: String = ""
-    @State private var drinking: String = ""
-    @State private var smoking: String = ""
     @State private var oneLineIntro: String = ""   // New
     @State private var selfIntro: String = ""      // New
     @State private var isSaving: Bool = false
@@ -64,10 +60,6 @@ struct ProfileSetupView: View {
                     heightStep
                 case .university:
                     universityStep
-                case .drinking:
-                    drinkingStep
-                case .smoking:
-                    smokingStep
                 case .oneLineIntro:
                     oneLineIntroStep
                 case .selfIntro:
@@ -305,58 +297,13 @@ struct ProfileSetupView: View {
             
             BTButton(title: "Next", action: {
                 userSession.university = university
-                curStep = .drinking
+                curStep = .oneLineIntro
             }, isDisabled: university.isEmpty)
             .padding(.horizontal, 40)
         }
     }
     
-    var drinkingStep: some View {
-        VStack(spacing: 20) {
-            Text("How often do you drink?")
-                .font(.btHeader)
-                .foregroundColor(.btTeal)
-                .multilineTextAlignment(.center)
-            
-            VStack(spacing: 15) {
-                BTSelectionButton(title: "Non-drinker", isSelected: drinking == "Non-drinker") { drinking = "Non-drinker" }
-                BTSelectionButton(title: "Socially", isSelected: drinking == "Socially") { drinking = "Socially" }
-                BTSelectionButton(title: "Reviewer", isSelected: drinking == "Reviewer") { drinking = "Reviewer" }
-            }
-            .padding(.horizontal, 40)
-            .padding(.bottom, 20)
-            
-            BTButton(title: "Next", action: {
-                userSession.drinking = drinking
-                curStep = .smoking
-            }, isDisabled: drinking.isEmpty)
-            .padding(.horizontal, 40)
-        }
-    }
-    
-    var smokingStep: some View {
-        VStack(spacing: 20) {
-            Text("Do you smoke?")
-                .font(.btHeader)
-                .foregroundColor(.btTeal)
-                .multilineTextAlignment(.center)
-            
-            VStack(spacing: 15) {
-                BTSelectionButton(title: "Non-smoker", isSelected: smoking == "Non-smoker") { smoking = "Non-smoker" }
-                BTSelectionButton(title: "Smoker", isSelected: smoking == "Smoker") { smoking = "Smoker" }
-                BTSelectionButton(title: "Electronic Cigarette", isSelected: smoking == "Electronic Cigarette") { smoking = "Electronic Cigarette" }
-                BTSelectionButton(title: "Trying to quit", isSelected: smoking == "Trying to quit") { smoking = "Trying to quit" }
-            }
-            .padding(.horizontal, 40)
-            .padding(.bottom, 20)
-            
-            BTButton(title: "Next", action: {
-                userSession.smoking = smoking
-                curStep = .oneLineIntro
-            }, isDisabled: smoking.isEmpty)
-            .padding(.horizontal, 40)
-        }
-    }
+
     
     // Helper function removed in favor of BTSelectionButton
     
@@ -412,8 +359,6 @@ struct ProfileSetupView: View {
                     "occupation": occupation,
                     "height": height,
                     "university": university,
-                    "drinking": drinking,
-                    "smoking": smoking,
                     "one_line_intro": oneLineIntro,
                     "self_intro": selfIntro,
                     "onboarding_step": "mbtiManualInput"

@@ -24,6 +24,7 @@ enum OnboardingDestination: Hashable {
     case mbtiResult
     case personalityQAIntro
     case personalityQA
+    case lifestyleOptions
     case matchingPreference
     case contactBlocking
     case photoUpload
@@ -112,6 +113,7 @@ class OnboardingRouter: ObservableObject {
         case "mbtiResult": navigate(to: .mbtiResult)
         case "personalityQAIntro": navigate(to: .personalityQAIntro)
         case "personalityQA": navigate(to: .personalityQA)
+        case "lifestyleOptions": navigate(to: .lifestyleOptions)
         case "matchingPreference": navigate(to: .matchingPreference)
         case "contactBlocking": navigate(to: .contactBlocking)
         case "photoUpload": navigate(to: .photoUpload)

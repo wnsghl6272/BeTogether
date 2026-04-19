@@ -259,6 +259,26 @@ Overhaul of the unmatch logic, chat memory deletion fixes, and dynamic reporting
 | Edge Function Secrets | `RESEND_API_KEY`, `ADMIN_EMAIL` — 실제 발송을 위해 필수 설정 |
 | Storage SDK Download | 공개 URL 대신 SDK `download()` 사용 시 RLS/인증 토큰 자동 적용 |
 
+### Phase 14 — Onboarding & Matching Overhaul
+
+Streamlined the complete onboarding flow and significantly remodeled how user preferences are structured.
+
+#### 구성 요소
+
+**1. Onboarding UI Restructuring**
+- **ProfileSetupView**: Removed redundant `.drinking` and `.smoking` queries.
+- **PersonalityQAView**: Eradicated outdated drinking habit tracking to accelerate the QA survey.
+- **MBTIResultView**: Simplified the interface by removing over-designed charts and focusing purely on the result text to decrease friction.
+
+**2. Data Structure Modernization (User Traits)**
+- Created a robust `lifestyle` JSONB property within the `user_traits` PostgreSQL table.
+- Deployed a data migration to seamlessly transfer legacy `smoking` and `drinking` preferences into the structured `lifestyle` dictionary.
+- **LifestyleOptionsView**: A new, expansive step integrated natively into the `OnboardingRouter`. Designed using a bespoke `FlowLayout` to elegantly present tag-based lifestyle attributes (Zodiac, Education, Family Plans, etc.).
+
+**3. Matching Preference Remaster**
+- **MatchingPreferenceView Redesign**: Redesigned the preference page combining a sticky Location row with interactive, dynamically-sized multi-selectable grid layouts that store attributes globally.
+- Re-wired the data pipeline to handle categorical array lists directly into the `matching_preferences` JSON.
+
 ---
 
 ## Future Features

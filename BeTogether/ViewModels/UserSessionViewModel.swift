@@ -17,10 +17,11 @@ class UserSessionViewModel: ObservableObject {
     @Published var occupation: String = ""
     @Published var height: String = ""
     @Published var university: String = ""
-    @Published var drinking: String = ""
-    @Published var smoking: String = ""
     @Published var oneLineIntro: String = "" // New
     @Published var selfIntro: String = ""    // New
+    
+    // Lifestyle Options
+    @Published var lifestyle: [String: String] = [:]
     
     // MBTI Data
     @Published var mbtiResult: String = "" // e.g. "ESFP"
@@ -30,8 +31,9 @@ class UserSessionViewModel: ObservableObject {
     @Published var minAge: Double = 20
     @Published var maxAge: Double = 35
     @Published var maxDistance: Double = 10
-    @Published var filterSmoking: Bool = false
-    @Published var filterDrinking: Bool = false
+    @Published var prioritizeActiveUsers: Bool = false
+    @Published var filterSmoking: [String] = []
+    @Published var filterDrinking: [String] = []
     @Published var filterMBTI: [String] = []
     
     enum OnboardingStep {
@@ -49,6 +51,7 @@ class UserSessionViewModel: ObservableObject {
         case mbtiResult
         case personalityQAIntro
         case personalityQA
+        case lifestyleOptions       // New
         case matchingPreference     // New
         case contactBlocking
         case photoUpload
@@ -92,6 +95,8 @@ class UserSessionViewModel: ObservableObject {
         case .personalityQAIntro:
             currentOnboardingStep = .personalityQA
         case .personalityQA:
+            currentOnboardingStep = .lifestyleOptions
+        case .lifestyleOptions:
             currentOnboardingStep = .matchingPreference
         case .matchingPreference:
             currentOnboardingStep = .contactBlocking

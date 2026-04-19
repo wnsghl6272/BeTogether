@@ -61,6 +61,8 @@ struct ContentView: View {
                                     PersonalityQAIntroView()
                                 case .personalityQA:
                                     PersonalityQAView()
+                                case .lifestyleOptions:
+                                    LifestyleOptionsView()
                                 case .matchingPreference:
                                     MatchingPreferenceView()
                                 case .contactBlocking:

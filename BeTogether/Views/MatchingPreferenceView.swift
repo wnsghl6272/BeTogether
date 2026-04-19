@@ -5,12 +5,19 @@ struct MatchingPreferenceView: View {
     @EnvironmentObject var router: OnboardingRouter
     
     // Preferences State
+    @State private var locationText: String = "Seoul"
+    @State private var maxDistance: Double = 10
     @State private var preferredGender: String = "Any"
     @State private var ageRange: ClosedRange<Double> = 20...35
-    @State private var maxDistance: Double = 10
-    @State private var filterSmoking: Bool = false
-    @State private var filterDrinking: Bool = false
+    @State private var prioritizeActiveUsers: Bool = false
+    
+    // Lifestyle Filter State
+    @State private var selectedDrinkingFilters: Set<String> = []
+    @State private var selectedSmokingFilters: Set<String> = []
     @State private var isSaving: Bool = false
+    
+    let drinkingOptions = ["Non-drinker", "Socially", "Reviewer"]
+    let smokingOptions = ["Non-smoker", "Smoker", "Electronic Cigarette", "Trying to quit"]
     
     // MBTI Filter State
     let mbtiTypes = [
@@ -39,6 +46,49 @@ struct MatchingPreferenceView: View {
                 
                 ScrollView {
                     VStack(spacing: 30) {
+                        
+                        // Location (Locked for now)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Location")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                            
+                            HStack {
+                                Image(systemName: "location.fill")
+                                    .foregroundColor(.btTeal)
+                                Text(locationText)
+                                    .font(.subheadline)
+                                    .foregroundColor(.black)
+                                Spacer()
+                                Image(systemName: "lock.fill")
+                                    .foregroundColor(.gray)
+                                    .font(.caption)
+                            }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                            )
+                        }
+                        
+                        // Distance
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("Max Distance")
+                                    .font(.headline)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Text("\(Int(maxDistance))km")
+                                    .font(.subheadline)
+                                    .foregroundColor(.btTeal)
+                            }
+                            
+                            Slider(value: $maxDistance, in: 1...100, step: 1)
+                                .accentColor(.btTeal)
+                        }
+                        
                         // Gender Preference
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Preferred Gender")
@@ -65,36 +115,79 @@ struct MatchingPreferenceView: View {
                             }
                             
                             RangeSlider(range: $ageRange, bounds: 19...50)
-                                .frame(height: 40) // Simplified slider placeholder
+                                .frame(height: 40)
                         }
                         
-                        // Distance
+                        // Most recently active
                         VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("Max Distance")
-                                    .font(.headline)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Text("\(Int(maxDistance))km")
-                                    .font(.subheadline)
-                                    .foregroundColor(.btTeal)
-                            }
-                            
-                            Slider(value: $maxDistance, in: 1...100, step: 1)
-                                .accentColor(.btTeal)
+                            Toggle("Prioritize Recently Active", isOn: $prioritizeActiveUsers)
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                                .toggleStyle(SwitchToggleStyle(tint: .btTeal))
                         }
                         
-                        // Filters
-                        VStack(alignment: .leading, spacing: 15) {
-                            Text("Lifestyle Filters")
+                        // Filters - Drinking
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Okay with Drinking")
                                 .font(.headline)
                                 .foregroundColor(.gray)
                             
-                            Toggle("Avoid Smokers", isOn: $filterSmoking)
-                                .toggleStyle(SwitchToggleStyle(tint: .btTeal))
+                            FlowLayout(spacing: 10) {
+                                ForEach(drinkingOptions, id: \.self) { option in
+                                    let isSelected = selectedDrinkingFilters.contains(option)
+                                    Text(option)
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(isSelected ? Color.btTeal : Color.white)
+                                        .foregroundColor(isSelected ? .white : .btTeal)
+                                        .cornerRadius(20)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(Color.btTeal, lineWidth: 1)
+                                        )
+                                        .onTapGesture {
+                                            if isSelected {
+                                                selectedDrinkingFilters.remove(option)
+                                            } else {
+                                                selectedDrinkingFilters.insert(option)
+                                            }
+                                        }
+                                }
+                            }
+                        }
+                        
+                        // Filters - Smoking
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Okay with Smoking")
+                                .font(.headline)
+                                .foregroundColor(.gray)
                             
-                            Toggle("Avoid Drinkers", isOn: $filterDrinking)
-                                .toggleStyle(SwitchToggleStyle(tint: .btTeal))
+                            FlowLayout(spacing: 10) {
+                                ForEach(smokingOptions, id: \.self) { option in
+                                    let isSelected = selectedSmokingFilters.contains(option)
+                                    Text(option)
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(isSelected ? Color.btTeal : Color.white)
+                                        .foregroundColor(isSelected ? .white : .btTeal)
+                                        .cornerRadius(20)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(Color.btTeal, lineWidth: 1)
+                                        )
+                                        .onTapGesture {
+                                            if isSelected {
+                                                selectedSmokingFilters.remove(option)
+                                            } else {
+                                                selectedSmokingFilters.insert(option)
+                                            }
+                                        }
+                                }
+                            }
                         }
                         
                         // MBTI Filter
@@ -141,12 +234,14 @@ struct MatchingPreferenceView: View {
                             isSaving = true
                             
                             let preferences: [String: Any] = [
+                                "location": locationText,
+                                "max_distance": Int(maxDistance),
                                 "preferred_gender": preferredGender,
                                 "min_age": Int(ageRange.lowerBound),
                                 "max_age": Int(ageRange.upperBound),
-                                "max_distance": Int(maxDistance),
-                                "filter_smoking": filterSmoking,
-                                "filter_drinking": filterDrinking,
+                                "prioritize_active": prioritizeActiveUsers,
+                                "filter_smoking": Array(selectedSmokingFilters),
+                                "filter_drinking": Array(selectedDrinkingFilters),
                                 "filter_mbti": Array(selectedMBTI)
                             ]
                             
@@ -178,15 +273,14 @@ struct MatchingPreferenceView: View {
         }
     }
     
-    // Replaced inline helper with BTToggleButton
-    
     func savePreferences() {
         userSession.preferredGender = preferredGender
         userSession.minAge = ageRange.lowerBound
         userSession.maxAge = ageRange.upperBound
         userSession.maxDistance = maxDistance
-        userSession.filterSmoking = filterSmoking
-        userSession.filterDrinking = filterDrinking
+        userSession.prioritizeActiveUsers = prioritizeActiveUsers
+        userSession.filterSmoking = Array(selectedSmokingFilters)
+        userSession.filterDrinking = Array(selectedDrinkingFilters)
         userSession.filterMBTI = Array(selectedMBTI)
     }
 }

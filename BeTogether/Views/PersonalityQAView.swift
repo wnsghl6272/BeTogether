@@ -35,27 +35,7 @@ struct PersonalityQAView: View {
             options: ["Essential for connection", "Important but not everything", "Nice to have", "Not a priority"]
         ),
         
-        // 2. Drinking Style
-        QAQuestion(
-            category: "Drinking habits",
-            icon: "🍺",
-            question: "How often do you drink?",
-            options: ["Never / Rarely", "Once or twice a week", "Enjoying often with meals", "Party animal!"]
-        ),
-        QAQuestion(
-            category: "Drinking habits",
-            icon: "🥂",
-            question: "What's your preferred drinking atmosphere?",
-            options: ["Quiet talks at an Izakaya", "Lively places with music", "Energetic Clubs/Parties", "Sensible drinking at home"]
-        ),
-        QAQuestion(
-            category: "Drinking habits",
-            icon: "🥴",
-            question: "What's your habit when drunk?",
-            options: ["I get sleepy/quiet", "I become more talkative", "I call everyone", "I become super energetic"]
-        ),
-        
-        // 3. Dating Style
+
         QAQuestion(
             category: "Dating style",
             icon: "📅",
@@ -185,16 +165,16 @@ struct PersonalityQAView: View {
             Task {
                 do {
                     try await AuthManager.shared.updateUserTraits(data: ["answers": answers])
-                    try await AuthManager.shared.updateProfile(data: ["onboarding_step": "matchingPreference"])
+                    try await AuthManager.shared.updateProfile(data: ["onboarding_step": "lifestyleOptions"])
                     await MainActor.run {
                         isSaving = false
-                        router.navigate(to: .matchingPreference)
+                        router.navigate(to: .lifestyleOptions)
                     }
                 } catch {
                     print("Error saving QA answers: \(error)")
                     await MainActor.run {
                         isSaving = false
-                        router.navigate(to: .matchingPreference)
+                        router.navigate(to: .lifestyleOptions)
                     }
                 }
             }
@@ -205,4 +185,162 @@ struct PersonalityQAView: View {
 #Preview {
     PersonalityQAView()
         .environmentObject(UserSessionViewModel())
+}
+
+struct LifestyleOptionsView: View {
+    @EnvironmentObject var userSession: UserSessionViewModel
+    @EnvironmentObject var router: OnboardingRouter
+    
+    // Using a simple dictionary to hold selected lifestyle options
+    @State private var selections: [String: String] = [:]
+    @State private var isSaving: Bool = false
+    
+    let lifestyleCategories = [
+        ("Zodiac Sign", ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]),
+        ("Education", ["High School", "In College", "Undergraduate", "Postgraduate"]),
+        ("Family Plans", ["Want children", "Don't want children", "Not sure yet"]),
+        ("Communication Style", ["Constant texter", "Video chatter", "Bad texter", "Call me"]),
+        ("Love Language", ["Words of Affirmation", "Quality Time", "Receiving Gifts", "Acts of Service", "Physical Touch"]),
+        ("Pets", ["Dog lover", "Cat lover", "All pets", "No pets"]),
+        ("Drinking", ["Non-drinker", "Socially", "Reviewer"]),
+        ("Smoking", ["Non-smoker", "Smoker", "Electronic Cigarette", "Trying to quit"]),
+        ("Workout", ["Everyday", "Often", "Sometimes", "Never"])
+    ]
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("Lifestyle & Preferences")
+                .font(.btHeader)
+                .foregroundColor(.btTeal)
+                .padding(.top, 20)
+                .padding(.bottom, 10)
+            
+            Text("Let others know a bit more about you.")
+                .font(.btBody)
+                .foregroundColor(.btDarkGrey)
+                .padding(.bottom, 20)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 30) {
+                    ForEach(lifestyleCategories, id: \.0) { category in
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text(category.0)
+                                .font(.btSubheader)
+                                .foregroundColor(.btDarkGrey)
+                            
+                            // Wrapping items 
+                            FlowLayout(spacing: 10) {
+                                ForEach(category.1, id: \.self) { option in
+                                    let isSelected = selections[category.0] == option
+                                    Text(option)
+                                        .font(.subheadline)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(isSelected ? Color.btTeal : Color.gray.opacity(0.1))
+                                        .foregroundColor(isSelected ? .white : .btDarkGrey)
+                                        .cornerRadius(20)
+                                        .onTapGesture {
+                                            if isSelected {
+                                                selections.removeValue(forKey: category.0)
+                                            } else {
+                                                selections[category.0] = option
+                                            }
+                                        }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 30)
+            }
+            
+            VStack {
+                if isSaving {
+                    ProgressView()
+                        .padding(.bottom, 10)
+                }
+                
+                BTButton(title: "Save & Continue", action: {
+                    saveLifestyleData()
+                }, isDisabled: isSaving)
+                .padding(.horizontal, 40)
+                .padding(.vertical, 20)
+            }
+        }
+        .background(Color.white.edgesIgnoringSafeArea(.all))
+    }
+    
+    private func saveLifestyleData() {
+        isSaving = true
+        userSession.lifestyle = selections
+        
+        Task {
+            do {
+                // Update lifestyle via AuthManager
+                // Since lifestyle is stored as a JSONB column in user_traits
+                try await AuthManager.shared.updateUserTraits(data: ["lifestyle": selections])
+                try await AuthManager.shared.updateProfile(data: ["onboarding_step": "matchingPreference"])
+                
+                await MainActor.run {
+                    isSaving = false
+                    router.navigate(to: .matchingPreference)
+                }
+            } catch {
+                print("Failed to save lifestyle data: \(error)")
+                await MainActor.run {
+                    isSaving = false
+                    router.navigate(to: .matchingPreference)
+                }
+            }
+        }
+    }
+}
+
+// FlowLayout helper for wrapping tags
+struct FlowLayout: Layout {
+    var spacing: CGFloat
+    
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = computeRows(proposal: proposal, subviews: subviews)
+        var height: CGFloat = 0
+        for row in rows {
+            let rowHeight = row.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0
+            height += rowHeight + spacing
+        }
+        return CGSize(width: proposal.width ?? 0, height: max(0, height - spacing))
+    }
+    
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let rows = computeRows(proposal: proposal, subviews: subviews)
+        var y = bounds.minY
+        for row in rows {
+            var x = bounds.minX
+            let rowHeight = row.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0
+            for view in row {
+                let size = view.sizeThatFits(.unspecified)
+                view.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+                x += size.width + spacing
+            }
+            y += rowHeight + spacing
+        }
+    }
+    
+    private func computeRows(proposal: ProposedViewSize, subviews: Subviews) -> [[LayoutSubview]] {
+        var rows: [[LayoutSubview]] = [[]]
+        var width: CGFloat = 0
+        let maxWidth = proposal.width ?? 0
+        
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if width + size.width > maxWidth, !rows[0].isEmpty {
+                rows.append([view])
+                width = size.width + spacing
+            } else {
+                rows[rows.count - 1].append(view)
+                width += size.width + spacing
+            }
+        }
+        return rows
+    }
 }
