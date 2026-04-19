@@ -137,18 +137,14 @@ struct AiChatInterfaceView: View {
                                 .padding(.horizontal, 14)
                             }
                             
-                            TabView {
-                                ForEach(matchedUsers.indices, id: \.self) { index in
-                                    if index < matchedUsers.count && index < matchReasonsArray.count {
-                                        PhotoCardView(user: matchedUsers[index], effect: .aiReveal(reasons: matchReasonsArray[index])) { actionStr in
-                                            handleCardAction(action: actionStr, matchedUser: matchedUsers[index])
-                                        }
-                                        .padding(.horizontal, 14)
-                                    }
+                            if let firstUser = matchedUsers.first, let firstReason = matchReasonsArray.first {
+                                PhotoCardView(user: firstUser, effect: .aiReveal(reasons: firstReason)) { actionStr in
+                                    handleCardAction(action: actionStr, matchedUser: firstUser)
                                 }
+                                .padding(.horizontal, 14)
+                                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
+                                .id(firstUser.id) // Ensure transition happens when ID changes
                             }
-                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-                            .frame(height: 620) // Give fixed space so cards look good
                         }
                         .id("matchesResult")
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -175,7 +171,15 @@ struct AiChatInterfaceView: View {
                 if let targetId = matchedUser.supabaseId {
                     let isMatch = try await InteractionManager.shared.handleUserAction(targetUserId: targetId, actionType: action)
                     if isMatch {
-                        print("It's a MATCH!")
+                        // Show match popup for the current user (caller side)
+                        let matchInfo = MatchedUserInfo(
+                            userId: targetId,
+                            name: matchedUser.name,
+                            imageUrl: matchedUser.imageName
+                        )
+                        await MainActor.run {
+                            NotificationManager.shared.showMatchPopupForCurrentUser(matchedUser: matchInfo)
+                        }
                     }
                 }
                 
@@ -244,6 +248,7 @@ struct AiChatInterfaceView: View {
             }
             struct UserProfileResponse: Decodable {
                 let id: String
+                let full_name: String?
                 let nickname: String?
                 let birth_date: String?
                 let occupation: String?
@@ -280,7 +285,7 @@ struct AiChatInterfaceView: View {
 
                 let newUser = User(
                     supabaseId: item.candidate.id,
-                    name: item.candidate.nickname ?? "Unknown",
+                    name: item.candidate.full_name ?? item.candidate.nickname ?? "Unknown",
                     age: calculatedAge,
                     region: "Online",
                     distance: 0,

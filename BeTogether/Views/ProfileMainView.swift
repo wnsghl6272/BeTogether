@@ -129,7 +129,7 @@ struct ProfileMainView: View {
     // MARK: - Profile Header
     private func profileHeaderSection(_ profile: ProfileData) -> some View {
         VStack(spacing: 8) {
-            Text(profile.nickname ?? "Unknown")
+            Text(profile.full_name ?? profile.nickname ?? "Unknown")
                 .font(.title)
                 .fontWeight(.bold)
             
@@ -165,6 +165,7 @@ struct ProfileMainView: View {
     // MARK: - Profile Details
     private func profileDetailsSection(_ profile: ProfileData) -> some View {
         VStack(spacing: 0) {
+            ProfileDetailRow(icon: "tag", title: "Nickname (Private ID)", value: profile.nickname ?? "Not set")
             ProfileDetailRow(icon: "briefcase", title: "Occupation", value: profile.occupation ?? "Not set")
             ProfileDetailRow(icon: "ruler", title: "Height", value: profile.height ?? "Not set")
             ProfileDetailRow(icon: "building.columns", title: "University", value: profile.university ?? "Not set")
@@ -420,7 +421,7 @@ struct ProfileMainView: View {
                 
                 // Fetch profile
                 let profileResult: [ProfileData] = try await client.from("profiles")
-                    .select("id, nickname, birth_date, occupation, height, university, drinking, smoking, gender, one_line_intro, self_intro, status")
+                    .select("id, full_name, nickname, birth_date, occupation, height, university, drinking, smoking, gender, one_line_intro, self_intro, status")
                     .eq("id", value: userId)
                     .setHeader(name: "Authorization", value: "Bearer \(token)")
                     .execute()
@@ -472,6 +473,7 @@ struct ProfileMainView: View {
 
 struct ProfileData: Decodable {
     let id: String
+    var full_name: String?
     var nickname: String?
     let birth_date: String?
     var occupation: String?
@@ -487,13 +489,14 @@ struct ProfileData: Decodable {
     var status: String?
     
     enum CodingKeys: String, CodingKey {
-        case id, nickname, birth_date, occupation, height, university
+        case id, full_name, nickname, birth_date, occupation, height, university
         case drinking, smoking, gender, one_line_intro, self_intro, status
     }
     
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
+        full_name = try c.decodeIfPresent(String.self, forKey: .full_name)
         nickname = try c.decodeIfPresent(String.self, forKey: .nickname)
         birth_date = try c.decodeIfPresent(String.self, forKey: .birth_date)
         occupation = try c.decodeIfPresent(String.self, forKey: .occupation)
@@ -558,14 +561,22 @@ struct ReportSubmissionView: View {
     @State private var showSuccessAlert = false
     @State private var errorMessage: String?
     
-    let reasons = [
-        "Inappropriate Behavior",
-        "Spam or Scam",
-        "Fake Profile",
-        "Harassment or Bullying",
-        "App Bug / Issue",
-        "Other"
-    ]
+    var reasons: [String] {
+        if targetUserId != nil {
+            return [
+                "Inappropriate Behavior",
+                "Spam or Scam",
+                "Fake Profile",
+                "Harassment or Bullying",
+                "Other"
+            ]
+        } else {
+            return [
+                "App Bug / Issue",
+                "Other"
+            ]
+        }
+    }
     
     var body: some View {
         NavigationView {
@@ -631,6 +642,12 @@ struct ReportSubmissionView: View {
                     .disabled(isSubmitting || details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .onAppear {
+                if selectedReason == "Inappropriate Behavior" && targetUserId == nil {
+                    selectedReason = "App Bug / Issue"
+                }
+            }
+            .navigationTitle(targetUserId != nil ? "Report User" : "Report Issue")
             .alert("Report Submitted", isPresented: $showSuccessAlert) {
                 Button("OK") {
                     dismiss()

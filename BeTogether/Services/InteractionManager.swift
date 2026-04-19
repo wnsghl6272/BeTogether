@@ -51,6 +51,7 @@ class InteractionManager {
             
             struct UserProfile: Decodable {
                 let id: String
+                let full_name: String?
                 let nickname: String?
                 let birth_date: String?
                 let occupation: String?
@@ -89,6 +90,7 @@ class InteractionManager {
         // Fetch profiles for friends
         struct ProfileResponse: Decodable {
             let id: String
+            let full_name: String?
             let nickname: String?
             let birth_date: String?
             let occupation: String?
@@ -97,7 +99,7 @@ class InteractionManager {
         
         // In query: in("id", friendIds)
         let profiles: [ProfileResponse] = try await client.from("profiles")
-            .select("id, nickname, birth_date, occupation, height")
+            .select("id, full_name, nickname, birth_date, occupation, height")
             .in("id", values: friendIds)
             .setHeader(name: "Authorization", value: "Bearer \(token)")
             .execute().value
@@ -126,7 +128,7 @@ class InteractionManager {
 
             let newUser = User(
                 supabaseId: p.id,
-                name: p.nickname ?? "Unknown",
+                name: p.full_name ?? p.nickname ?? "Unknown",
                 age: calculatedAge,
                 region: "Matched",
                 distance: 0,
@@ -216,7 +218,7 @@ class InteractionManager {
 
             let newUser = User(
                 supabaseId: p.id,
-                name: p.nickname ?? "Unknown",
+                name: p.full_name ?? p.nickname ?? "Unknown",
                 age: calculatedAge,
                 region: "App User",
                 distance: 0,
@@ -241,6 +243,7 @@ class InteractionManager {
     // Extracted ProfileResponse since we reuse it now
     struct ProfileResponse: Decodable {
         let id: String
+        let full_name: String?
         let nickname: String?
         let birth_date: String?
         let occupation: String?
@@ -275,44 +278,21 @@ class InteractionManager {
     
     /// Unmatch: delete the match record, related conversation, and interactions
     func unmatch(targetUserId: String) async throws {
-        guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
-              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token) else {
-            throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        guard let targetUUID = UUID(uuidString: targetUserId) else {
+            throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid target user ID for unmatch"])
         }
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken(), !token.isEmpty else {
+            throw NSError(domain: "InteractionManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        
+        struct UnmatchParams: Encodable {
+            let p_target_user_id: UUID
+        }
+        
         let client = AuthManager.shared.client
-        
-        // Delete match record (either direction)
-        let _ = try await client.from("matches")
-            .delete()
-            .or("and(user1_id.eq.\(currentUserId),user2_id.eq.\(targetUserId)),and(user1_id.eq.\(targetUserId),user2_id.eq.\(currentUserId))")
+        let _ = try await client.rpc("unmatch_user", params: UnmatchParams(p_target_user_id: targetUUID))
             .setHeader(name: "Authorization", value: "Bearer \(token)")
             .execute()
-        
-        // Delete related interactions (both directions)
-        let _ = try? await client.from("user_interactions")
-            .delete()
-            .or("and(from_user.eq.\(currentUserId),to_user.eq.\(targetUserId)),and(from_user.eq.\(targetUserId),to_user.eq.\(currentUserId))")
-            .setHeader(name: "Authorization", value: "Bearer \(token)")
-            .execute()
-        
-        // Delete related match conversation
-        if let convId = await ChatManager.findConversationId(partnerId: targetUserId, type: "match") {
-            let _ = try? await client.from("messages")
-                .delete()
-                .eq("conversation_id", value: convId)
-                .setHeader(name: "Authorization", value: "Bearer \(token)")
-                .execute()
-            let _ = try? await client.from("conversation_members")
-                .delete()
-                .eq("conversation_id", value: convId)
-                .setHeader(name: "Authorization", value: "Bearer \(token)")
-                .execute()
-            let _ = try? await client.from("conversations")
-                .delete()
-                .eq("id", value: convId)
-                .setHeader(name: "Authorization", value: "Bearer \(token)")
-                .execute()
-        }
     }
     
     /// Remove friend: delete friendship record + remove self from conversation (partner keeps chat)
@@ -374,7 +354,7 @@ class InteractionManager {
         if picks.isEmpty {
             // Fetch 10 random candidates excluding current user
             let allProfiles: [ProfileResponse] = try await client.from("profiles")
-                .select("id, nickname, birth_date, occupation, height")
+                .select("id, full_name, nickname, birth_date, occupation, height")
                 .neq("id", value: currentUserId)
                 .limit(10)
                 .setHeader(name: "Authorization", value: "Bearer \(token)")
@@ -404,7 +384,7 @@ class InteractionManager {
         guard !targetIds.isEmpty else { return [] }
         
         let profiles: [ProfileResponse] = try await client.from("profiles")
-            .select("id, nickname, birth_date, occupation, height")
+            .select("id, full_name, nickname, birth_date, occupation, height")
             .in("id", values: targetIds)
             .setHeader(name: "Authorization", value: "Bearer \(token)")
             .execute().value
@@ -432,7 +412,7 @@ class InteractionManager {
 
                 let newUser = User(
                     supabaseId: profile.id,
-                    name: profile.nickname ?? "Unknown",
+                    name: profile.full_name ?? profile.nickname ?? "Unknown",
                     age: calculatedAge,
                     region: "App User",
                     distance: Int.random(in: 2...15), // Placeholder for Distance

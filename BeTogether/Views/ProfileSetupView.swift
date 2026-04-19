@@ -6,6 +6,7 @@ struct ProfileSetupView: View {
     
     enum ProfileStep {
         case birthday
+        case fullname
         case nickname
         case gender
         case occupation
@@ -21,6 +22,7 @@ struct ProfileSetupView: View {
     
     // Data States
     @State private var birthDate: Date = Date()
+    @State private var fullName: String = ""
     @State private var nickname: String = ""
     @State private var gender: String = "" // "Male" or "Female"
     @State private var occupation: String = ""
@@ -50,6 +52,8 @@ struct ProfileSetupView: View {
                 switch curStep {
                 case .birthday:
                     birthdayStep
+                case .fullname:
+                    fullNameStep
                 case .nickname:
                     nicknameStep
                 case .gender:
@@ -99,12 +103,34 @@ struct ProfileSetupView: View {
             
             BTButton(title: "Next", action: {
                 userSession.birthDate = birthDate
-                curStep = .nickname
+                curStep = .fullname
             }, isDisabled: !isAgeValid)
             .padding(.horizontal, 40)
         }
     }
     
+    
+    var fullNameStep: some View {
+        VStack(spacing: 30) {
+            Text("What's your full name?")
+                .font(.btHeader)
+                .foregroundColor(.btTeal)
+            
+            Text("Your friends will see this name.")
+                .font(.caption)
+                .foregroundColor(.gray)
+
+            BTTextField(placeholder: "Full Name", text: $fullName)
+                .padding(.horizontal, 40)
+            
+            BTButton(title: "Next", action: {
+                userSession.fullName = fullName
+                curStep = .nickname
+            }, isDisabled: fullName.trimmingCharacters(in: .whitespaces).isEmpty)
+            .padding(.horizontal, 40)
+        }
+    }
+
     @State private var nicknameCheckStatus: String? = nil
     @State private var isNicknameAvailable: Bool = false
     @State private var isCheckingNickname: Bool = false
@@ -379,6 +405,7 @@ struct ProfileSetupView: View {
                 let dateString = formatter.string(from: birthDate)
                 
                 let profileData: [String: Any] = [
+                    "full_name": fullName,
                     "nickname": nickname,
                     "birth_date": dateString,
                     "gender": gender,

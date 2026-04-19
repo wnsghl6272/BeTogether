@@ -10,6 +10,7 @@ struct ExploreView: View {
     @State private var isLoading = false
     @State private var friendNickname = ""
     @State private var addFriendStatus: String? = nil
+    @State private var showAddFriendSheet = false
     
     var body: some View {
         NavigationView {
@@ -130,7 +131,17 @@ struct ExploreView: View {
         guard let id = user.supabaseId else { return }
         Task {
             do {
-                _ = try await InteractionManager.shared.handleUserAction(targetUserId: id, actionType: "like")
+                let isMatch = try await InteractionManager.shared.handleUserAction(targetUserId: id, actionType: "like")
+                if isMatch {
+                    let matchInfo = MatchedUserInfo(
+                        userId: id,
+                        name: user.name,
+                        imageUrl: user.imageName
+                    )
+                    await MainActor.run {
+                        NotificationManager.shared.showMatchPopupForCurrentUser(matchedUser: matchInfo)
+                    }
+                }
                 // Refresh data because they should move to the Mutual Matches array natively.
                 fetchAllData()
             } catch {
@@ -142,76 +153,65 @@ struct ExploreView: View {
     // MARK: - Friends Tab
     private var friendsTab: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Add Friend by Nickname
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Add Friend by Nickname")
-                        .font(.headline)
-                    
-                    HStack {
-                        Image(systemName: "person.text.rectangle")
-                            .foregroundColor(.gray)
-                        TextField("Enter nickname...", text: $friendNickname)
-                            .autocapitalization(.none)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    
-                    Button(action: {
-                        addFriendByNickname()
-                    }) {
-                        Text("Add Friend")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(friendNickname.trimmingCharacters(in: .whitespaces).isEmpty ? Color.gray : Color.btTeal)
-                            .cornerRadius(12)
-                    }
-                    .disabled(friendNickname.trimmingCharacters(in: .whitespaces).isEmpty)
-                    
-                    if let status = addFriendStatus {
-                        Text(status)
-                            .font(.caption)
-                            .foregroundColor(status.contains("Error") || status.contains("not found") ? .red : .green)
-                            .animation(.easeIn, value: addFriendStatus)
-                    }
-                }
-                .padding(.horizontal)
-                
-                Divider().padding(.vertical, 10)
-                
-                // Friends List
-                VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header with Add Friend icon
+                HStack {
                     Text("My Friends")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .padding(.horizontal)
                     
-                    if isLoading {
-                        ProgressView("Loading...")
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    } else if friends.isEmpty {
-                        Text("You haven't added any friends yet.")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    } else {
-                        VStack(spacing: 12) {
-                            ForEach(friends) { friend in
-                                FriendRowView(user: friend, onRemove: {
-                                    removeFriendUser(friend)
-                                })
-                            }
-                        }
-                        .padding(.horizontal)
+                    Spacer()
+                    
+                    Button(action: {
+                        showAddFriendSheet = true
+                    }) {
+                        Image(systemName: "person.badge.plus")
+                            .font(.title2)
+                            .foregroundColor(.btTeal)
                     }
+                }
+                .padding(.horizontal)
+                .padding(.top, 10)
+                
+                if isLoading {
+                    ProgressView("Loading...")
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                } else if friends.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.2.slash")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray.opacity(0.5))
+                        Text("No friends yet")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        Text("Tap the + icon to add friends by nickname")
+                            .font(.subheadline)
+                            .foregroundColor(.gray.opacity(0.7))
+                    }
+                    .padding(.vertical, 40)
+                    .frame(maxWidth: .infinity)
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(friends) { friend in
+                            FriendRowView(user: friend, onRemove: {
+                                removeFriendUser(friend)
+                            })
+                        }
+                    }
+                    .padding(.horizontal)
                 }
             }
             .padding(.bottom, 20)
+        }
+        .sheet(isPresented: $showAddFriendSheet) {
+            AddFriendSheet(
+                nickname: $friendNickname,
+                status: $addFriendStatus,
+                onAdd: { addFriendByNickname() },
+                onDismiss: { showAddFriendSheet = false }
+            )
+            .presentationDetents([.medium])
         }
     }
     
@@ -243,7 +243,15 @@ struct ExploreView: View {
         guard let id = user.supabaseId else { return }
         withAnimation { matchedUsers.removeAll { $0.id == user.id } }
         Task {
-            try? await InteractionManager.shared.unmatch(targetUserId: id)
+            do {
+                try await InteractionManager.shared.unmatch(targetUserId: id)
+                // Refresh from DB to ensure UI is fully in sync
+                fetchAllData()
+            } catch {
+                print("Error unmatching user: \(error)")
+                // Re-fetch to restore accurate state since unmatch failed
+                fetchAllData()
+            }
         }
     }
     
@@ -251,7 +259,11 @@ struct ExploreView: View {
         guard let id = user.supabaseId else { return }
         withAnimation { friends.removeAll { $0.id == user.id } }
         Task {
-            try? await InteractionManager.shared.removeFriend(targetUserId: id)
+            let client = AuthManager.shared.client
+            let token = await AuthManager.shared.fetchCurrentAccessToken() ?? ""
+            let _ = try? await client.rpc("remove_friend", params: ["p_target_user_id": id])
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute()
         }
     }
 }
@@ -334,7 +346,7 @@ struct MatchCardView: View {
                     Task {
                         if let partnerId = user.supabaseId,
                            let convId = await ChatManager.findConversationId(partnerId: partnerId, type: "match") {
-                            let session = ChatSession(conversationId: convId, partner: user)
+                            let session = ChatSession(conversationId: convId, partner: user, conversationType: "match")
                             await MainActor.run {
                                 NavigationManager.shared.pendingChatSession = session
                                 NavigationManager.shared.selectedTab = 3
@@ -349,14 +361,18 @@ struct MatchCardView: View {
                 .background(Color.btTeal)
                 .cornerRadius(15)
                 
-                Button {
-                    showUnmatchAlert = true
+                Menu {
+                    Button(role: .destructive) {
+                        showUnmatchAlert = true
+                    } label: {
+                        Label("Unmatch", systemImage: "person.fill.xmark")
+                    }
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(6)
-                        .background(Color.red.opacity(0.1))
+                    Image(systemName: "ellipsis")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                        .padding(8)
+                        .background(Color(.systemGray6))
                         .clipShape(Circle())
                 }
             }
@@ -374,13 +390,101 @@ struct MatchCardView: View {
     }
 }
 
+// MARK: - Add Friend Sheet
+struct AddFriendSheet: View {
+    @Binding var nickname: String
+    @Binding var status: String?
+    let onAdd: () -> Void
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                VStack(spacing: 8) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 44))
+                        .foregroundColor(.btTeal)
+                    Text("Add Friend")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("Enter your friend's unique nickname")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                .padding(.top, 20)
+                
+                HStack {
+                    Image(systemName: "at")
+                        .foregroundColor(.gray)
+                    TextField("Nickname", text: $nickname)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                .padding(.horizontal)
+                
+                Button(action: onAdd) {
+                    Text("Add Friend")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(nickname.trimmingCharacters(in: .whitespaces).isEmpty ? Color.gray : Color.btTeal)
+                        .cornerRadius(14)
+                }
+                .disabled(nickname.trimmingCharacters(in: .whitespaces).isEmpty)
+                .padding(.horizontal)
+                
+                if let status = status {
+                    Text(status)
+                        .font(.caption)
+                        .foregroundColor(status.contains("Error") || status.contains("not found") ? .red : .green)
+                        .padding(.horizontal)
+                }
+                
+                Spacer()
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { onDismiss() }
+                }
+            }
+        }
+    }
+}
+
 struct FriendRowView: View {
     let user: User
     var onRemove: (() -> Void)? = nil
     @State private var showRemoveAlert = false
+    @State private var showProfileCard = false
     
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            // Profile photo — tappable for mini profile
+            Button(action: { showProfileCard = true }) {
+                ProfileAvatarView(imageUrl: user.imageName, size: 50)
+            }
+            .buttonStyle(.plain)
+            
+            // Name + job
+            VStack(alignment: .leading, spacing: 2) {
+                Text(user.name)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                if !user.job.isEmpty {
+                    Text(user.job)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            // Chat button
             Button(action: {
                 Task {
                     if let partnerId = user.supabaseId,
@@ -393,44 +497,144 @@ struct FriendRowView: View {
                     }
                 }
             }) {
-                HStack {
-                    ProfileAvatarView(imageUrl: user.imageName, size: 44)
-                    
-                    VStack(alignment: .leading) {
-                        Text(user.name)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        if !user.job.isEmpty {
-                            Text(user.job)
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "message.fill")
-                        .foregroundColor(.btTeal)
-                }
-            }
-            
-            Button {
-                showRemoveAlert = true
-            } label: {
-                Image(systemName: "person.badge.minus")
-                    .foregroundColor(.red)
+                Image(systemName: "message.fill")
+                    .font(.body)
+                    .foregroundColor(.btTeal)
                     .padding(8)
+                    .background(Color.btTeal.opacity(0.12))
+                    .clipShape(Circle())
             }
             .buttonStyle(.plain)
+            
+            // More menu (remove friend)
+            Menu {
+                Button(role: .destructive) {
+                    showRemoveAlert = true
+                } label: {
+                    Label("Remove Friend", systemImage: "person.fill.xmark")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.body)
+                    .foregroundColor(.gray)
+                    .padding(8)
+                    .background(Color(.systemGray5))
+                    .clipShape(Circle())
+            }
         }
-        .padding()
+        .padding(12)
         .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .cornerRadius(14)
         .alert("Remove Friend", isPresented: $showRemoveAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Remove", role: .destructive) { onRemove?() }
         } message: {
-            Text("Are you sure you want to remove \(user.name)? Chat history will also be deleted.")
+            Text("Remove \(user.name) from friends? You can re-add them later and your chat history will be preserved.")
+        }
+        .sheet(isPresented: $showProfileCard) {
+            FriendProfileCard(user: user)
+                .presentationDetents([.medium])
+        }
+    }
+}
+
+// MARK: - Friend Mini Profile Card
+struct FriendProfileCard: View {
+    let user: User
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Close button
+            HStack {
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 12)
+            
+            ProfileAvatarView(imageUrl: user.imageName, size: 100)
+                .overlay(
+                    Circle()
+                        .stroke(Color.btTeal, lineWidth: 3)
+                )
+            
+            Text(user.name)
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            if user.age > 0 {
+                Text("\(user.age) years old")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            // Info grid
+            HStack(spacing: 24) {
+                if !user.job.isEmpty {
+                    VStack {
+                        Image(systemName: "briefcase.fill")
+                            .foregroundColor(.btTeal)
+                        Text(user.job)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                if user.height > 0 {
+                    VStack {
+                        Image(systemName: "ruler")
+                            .foregroundColor(.btTeal)
+                        Text("\(user.height)cm")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                if user.mbti != "N/A" {
+                    VStack {
+                        Image(systemName: "brain.head.profile")
+                            .foregroundColor(.btTeal)
+                        Text(user.mbti)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            
+            // Chat button
+            Button(action: {
+                dismiss()
+                Task {
+                    if let partnerId = user.supabaseId,
+                       let convId = await ChatManager.findConversationId(partnerId: partnerId, type: "friend") {
+                        let session = ChatSession(conversationId: convId, partner: user)
+                        await MainActor.run {
+                            NavigationManager.shared.pendingChatSession = session
+                            NavigationManager.shared.selectedTab = 3
+                        }
+                    }
+                }
+            }) {
+                HStack {
+                    Image(systemName: "message.fill")
+                    Text("Send Message")
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.btTeal)
+                .cornerRadius(14)
+            }
+            .padding(.horizontal)
+            
+            Spacer()
         }
     }
 }

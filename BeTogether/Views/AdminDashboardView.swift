@@ -73,9 +73,12 @@ struct AdminUserCardView: View {
             // Header
             HStack {
                 VStack(alignment: .leading) {
-                    Text(user.nickname ?? "Unknown")
+                    Text(user.full_name ?? user.nickname ?? "Unknown")
                         .font(.headline)
                         .foregroundColor(.black)
+                    Text("Nickname: \(user.nickname ?? "Unknown")")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                     Text(user.phone ?? "No Phone")
                         .font(.subheadline)
                         .foregroundColor(.gray)

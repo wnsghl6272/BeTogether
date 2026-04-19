@@ -415,6 +415,7 @@ class AuthManager: ObservableObject {
     struct PendingUserProfile: Codable, Identifiable, Hashable {
         let id: String
         let phone: String?
+        let full_name: String?
         let nickname: String?
         let status: String?
     }
@@ -422,7 +423,7 @@ class AuthManager: ObservableObject {
     func fetchPendingUsers() async throws -> [PendingUserProfile] {
         let response: [PendingUserProfile] = try await client.database
             .from("profiles")
-            .select("id, phone, nickname, status")
+            .select("id, phone, full_name, nickname, status")
             .eq("status", value: "pending_approval")
             .execute()
             .value

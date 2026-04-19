@@ -230,6 +230,27 @@ AI 기반 유저 매칭 추천 기능. 유저가 원하는 상대방을 자연�
 - `ProfileMainView` 및 `PhotoCardView` 내 `GeometryReader` 사용 시 프레임 계산 과정에서 발생하던 `NaN` (Not a Number) 에러 방지.
 - `max(0, geometry.size.width)` 등 안전 장치(guard) 적용으로 런타임 경고 완전 제거.
 
+### Phase 13 — Chat Reliability, Unmatch Logic Overhaul, and Dynamic Reporting
+
+Overhaul of the unmatch logic, chat memory deletion fixes, and dynamic reporting categories to ensure system stability and privacy.
+
+#### Components
+
+**1. Chat Memory & Deletion Fixes (Server-Side Message Filtering)**
+- **Problem**: Previously cleared conversations reappeared when a peer sent a new message, due to flaws in client-side timeline filtering (`cleared_at`).
+- **Solution**: Transitioned the fetch logic in `ChatManager` to a dedicated Supabase Postgres RPC (`get_conversation_messages`). This shifts the filtering logic to the database layer, strictly ensuring that any messages created before a user's `cleared_at` timestamp are inherently pruned from the exact payload returned to the client. This guarantees cleared message histories never reappear.
+
+**2. Unmatch Logic Overhaul & Foreign Key Constraint Resolution**
+- **Problem**: When attempting to unmatch a user, the deletion of related `conversations` was failing. This triggered a Foreign Key Constraint violation (`Error 23503: notifications_conversation_id_fkey`) because stranded notification records referencing the conversation still existed. Consequently, "unmatched" users reappeared on the Explore screen after reloading.
+- **Solution**: 
+  - Updated the PostgreSQL `unmatch_user` RPC to explicitly cascade the deletion. It now meticulously deletes records from `messages`, any related `notifications` targeting the specific `conversation_id`, `conversation_members`, the core `conversations` record itself, and finally the `matches` & `user_interactions`.
+  - Refactored `InteractionManager` passing arguments to the `unmatch_user` RPC using strongly-typed `UUID` Encodables via URLSession, eliminating `try?` silent suppression in `ExploreView`, forcing active UI synchronization and re-fetching after an unmatch completes.
+
+**3. Dynamic Reporting Categories (Context-Aware Issue Reporting)**
+- Refactored `ReportSubmissionView` to react based on its point of entry:
+  - **Global Context (`ProfileMainView`)**: Restricts the selection to generic items like `App Bug / Issue` and `Other` when reporting structural app-wide problems without a designated target.
+  - **Peer Context (`ChatRoomView`)**: Expands the categories to `Harassment`, `Inappropriate Content`, `Spam`, and `Fake Profile` to correctly audit peer-to-peer behavior.
+
 #### 보안 및 운영 참고
 
 | 항목 | 설명 |

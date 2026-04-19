@@ -6,6 +6,7 @@ struct ProfileEditView: View {
     let profile: ProfileData
     let onSave: (ProfileData) -> Void
     
+    @State private var fullName: String = ""
     @State private var nickname: String = ""
     @State private var occupation: String = ""
     @State private var height: String = ""
@@ -27,7 +28,15 @@ struct ProfileEditView: View {
             Form {
                 Section("Basic Info") {
                     HStack {
-                        Label("Nickname", systemImage: "person")
+                        Label("Full Name", systemImage: "person.text.rectangle")
+                        Spacer()
+                        TextField("Full Name", text: $fullName)
+                            .multilineTextAlignment(.trailing)
+                            .foregroundColor(.btTeal)
+                    }
+                    
+                    HStack {
+                        Label("Nickname (ID)", systemImage: "tag")
                         Spacer()
                         HStack(spacing: 4) {
                             Text(profile.nickname ?? "")
@@ -136,6 +145,7 @@ struct ProfileEditView: View {
                 Text(errorMessage)
             }
             .onAppear {
+                fullName = profile.full_name ?? ""
                 nickname = profile.nickname ?? ""
                 occupation = profile.occupation ?? ""
                 height = profile.height ?? ""
@@ -153,6 +163,7 @@ struct ProfileEditView: View {
         Task {
             do {
                 let data: [String: Any] = [
+                    "full_name": fullName,
                     "occupation": occupation,
                     "height": height,
                     "university": university,
@@ -166,6 +177,7 @@ struct ProfileEditView: View {
                 
                 await MainActor.run {
                     var updated = profile
+                    updated.full_name = fullName
                     updated.nickname = nickname
                     updated.occupation = occupation
                     updated.height = height

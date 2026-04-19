@@ -10,6 +10,7 @@ class UserSessionViewModel: ObservableObject {
     // User Data
     @Published var phoneNumber: String = ""
     @Published var email: String = ""
+    @Published var fullName: String = "" // New
     @Published var nickname: String = ""
     @Published var birthDate: Date = Date()
     @Published var gender: String = ""

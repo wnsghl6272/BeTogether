@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatRoomView: View {
     let partner: User
     let conversationId: String
+    var conversationType: String = "friend"
     @StateObject private var chatManager = ChatManager()
     @State private var messageText: String = ""
     @Environment(\.colorScheme) var colorScheme
@@ -110,13 +111,12 @@ struct ChatRoomView: View {
                     self.currentUserId = uid
                 }
                 
-                // Check if partner is a friend (check friendships table, not just conversation)
-                if let partnerId = partner.supabaseId {
+                // Only check friendship status for friend-type conversations
+                if conversationType == "friend", let partnerId = partner.supabaseId {
                     let client = AuthManager.shared.client
                     if let token = await AuthManager.shared.fetchCurrentAccessToken(),
                        let uid = await AiChatInterfaceView.extractSubFromJWT(token) {
                         struct FriendCount: Decodable { let count: Int }
-                        // Check friendships table in either direction
                         let count: Int = (try? await client.from("friendships")
                             .select("id", head: true, count: .exact)
                             .or("and(user1_id.eq.\(uid),user2_id.eq.\(partnerId)),and(user1_id.eq.\(partnerId),user2_id.eq.\(uid))")
@@ -127,6 +127,9 @@ struct ChatRoomView: View {
                             self.isFriend = (count > 0)
                         }
                     }
+                } else {
+                    // Match conversations never show the friend banner
+                    await MainActor.run { self.isFriend = true }
                 }
                 
                 await chatManager.loadMessages(conversationId: conversationId)

@@ -6,11 +6,13 @@ struct ChatSession: Identifiable, Equatable {
     var id: String { conversationId }
     let conversationId: String
     let partner: User
+    var conversationType: String = "friend"
     var lastMessage: String?
     var unreadCount: Int = 0
+    var clearedAt: String?
     
     static func == (lhs: ChatSession, rhs: ChatSession) -> Bool {
-        return lhs.conversationId == rhs.conversationId && lhs.lastMessage == rhs.lastMessage && lhs.unreadCount == rhs.unreadCount
+        return lhs.conversationId == rhs.conversationId && lhs.lastMessage == rhs.lastMessage && lhs.unreadCount == rhs.unreadCount && lhs.clearedAt == rhs.clearedAt
     }
 }
 
@@ -31,6 +33,7 @@ class ChatManager: ObservableObject {
     struct ConversationRow: Decodable {
         let conversation_id: String
         let partner_id: String
+        let partner_full_name: String?
         let partner_nickname: String?
         let partner_occupation: String?
         let partner_birth_date: String?
@@ -38,6 +41,7 @@ class ChatManager: ObservableObject {
         let last_message: String?
         let last_message_at: String?
         let unread_count: Int
+        let cleared_at: String?
     }
     
     static func fetchChatSessions(forType type: String) async -> [ChatSession] {
@@ -67,7 +71,7 @@ class ChatManager: ObservableObject {
                 
                 let partner = User(
                     supabaseId: row.partner_id,
-                    name: row.partner_nickname ?? "Unknown",
+                    name: row.partner_full_name ?? row.partner_nickname ?? "Unknown",
                     age: calculatedAge,
                     region: type == "match" ? "Matched" : "Friend",
                     distance: 0,
@@ -88,8 +92,10 @@ class ChatManager: ObservableObject {
                 let session = ChatSession(
                     conversationId: row.conversation_id,
                     partner: partner,
+                    conversationType: type,
                     lastMessage: row.last_message,
-                    unreadCount: row.unread_count
+                    unreadCount: row.unread_count,
+                    clearedAt: row.cleared_at
                 )
                 sessions.append(session)
             }
@@ -137,6 +143,20 @@ class ChatManager: ObservableObject {
         }
     }
     
+    static func clearConversation(_ conversationId: String) async {
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
+              let uuid = UUID(uuidString: conversationId) else { return }
+        let client = AuthManager.shared.client
+        do {
+            struct ClearParam: Encodable { let conv_id: UUID }
+            try await client.rpc("clear_conversation", params: ClearParam(conv_id: uuid))
+                .setHeader(name: "Authorization", value: "Bearer \(token)")
+                .execute()
+        } catch {
+            print("Failed to clear conversation: \(error)")
+        }
+    }
+    
     // MARK: - Instance properties for active chat room
     
     @Published var messages: [ChatMessage] = []
@@ -154,15 +174,15 @@ class ChatManager: ObservableObject {
         do {
             let client = AuthManager.shared.client
             
-            let fetchedMessages: [ChatMessage] = try await client.from("messages")
-                .select("id, sender_id, receiver_id, content, created_at, conversation_id")
-                .eq("conversation_id", value: conversationId)
-                .order("created_at", ascending: true)
-                .setHeader(name: "Authorization", value: "Bearer \(token)")
-                .execute()
-                .value
-            
-            self.messages = fetchedMessages
+            struct Param: Encodable { let conv_id: UUID }
+            if let uuid = UUID(uuidString: conversationId) {
+                let fetchedMessages: [ChatMessage] = try await client.rpc("get_conversation_messages", params: Param(conv_id: uuid))
+                    .setHeader(name: "Authorization", value: "Bearer \(token)")
+                    .execute()
+                    .value
+                
+                self.messages = fetchedMessages
+            }
             
             // Subscribe to realtime events for this conversation
             await setupRealtime(conversationId: conversationId, currentUserId: currentUserId)

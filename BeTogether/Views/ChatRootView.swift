@@ -17,7 +17,7 @@ struct ChatRootView: View {
                 // Hidden NavigationLink for programmatic navigation
                 if let session = navigateToSession {
                     NavigationLink(
-                        destination: ChatRoomView(partner: session.partner, conversationId: session.conversationId),
+                        destination: ChatRoomView(partner: session.partner, conversationId: session.conversationId, conversationType: session.conversationType),
                         isActive: Binding(
                             get: { true },
                             set: { if !$0 { navigateToSession = nil } }
@@ -147,6 +147,22 @@ struct ChatUsersListView: View {
                                 .padding(6)
                                 .background(Color.btTeal)
                                 .clipShape(Circle())
+                        }
+                        
+                        Menu {
+                            Button(role: .destructive) {
+                                Task {
+                                    await ChatManager.clearConversation(session.conversationId)
+                                    NotificationCenter.default.post(name: NSNotification.Name("NewChatMessage"), object: nil)
+                                }
+                            } label: {
+                                Label("Delete Chat", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .foregroundColor(.gray)
+                                .padding(.leading, 8)
+                                .padding(.vertical, 8)
                         }
                     }
                     .padding(.vertical, 8)
