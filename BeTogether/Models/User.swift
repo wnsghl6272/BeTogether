@@ -21,6 +21,9 @@ struct User: Identifiable {
     let oneLineIntro: String
     let selfIntro: String
     
+    var lifestyle: [String: String]? = nil
+    var personalQA: [String: String]? = nil
+    
     var imageNames: [String] = []
 }
 

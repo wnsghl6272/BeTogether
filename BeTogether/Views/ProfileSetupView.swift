@@ -11,9 +11,8 @@ struct ProfileSetupView: View {
         case gender
         case occupation
         case height
-        case university
-        case oneLineIntro // New
-        case selfIntro    // New
+        case oneLineIntro
+        case selfIntro
     }
     
     @State private var curStep: ProfileStep = .birthday
@@ -24,11 +23,36 @@ struct ProfileSetupView: View {
     @State private var nickname: String = ""
     @State private var gender: String = "" // "Male" or "Female"
     @State private var occupation: String = ""
+    @State private var occupationSearch: String = ""
     @State private var height: String = ""
-    @State private var university: String = ""
-    @State private var oneLineIntro: String = ""   // New
-    @State private var selfIntro: String = ""      // New
+    @State private var oneLineIntro: String = ""
+    @State private var selfIntro: String = ""
     @State private var isSaving: Bool = false
+    
+    // Occupation list for searchable picker
+    let occupationList = [
+        "Accountant", "Actor", "Architect", "Artist", "Baker", "Banker", "Barista",
+        "Business Analyst", "Business Owner", "Chef", "Civil Servant", "Coach",
+        "Consultant", "Content Creator", "Counselor", "Data Analyst", "Data Scientist",
+        "Dentist", "Designer", "Developer", "Doctor", "Editor", "Electrician",
+        "Engineer", "Entrepreneur", "Event Planner", "Fashion Designer", "Film Director",
+        "Financial Advisor", "Firefighter", "Fitness Trainer", "Flight Attendant",
+        "Florist", "Freelancer", "Graphic Designer", "Hair Stylist", "Healthcare Worker",
+        "Illustrator", "Influencer", "Interior Designer", "Journalist", "Lawyer",
+        "Librarian", "Makeup Artist", "Manager", "Marketer", "Mechanic", "Model",
+        "Musician", "Nurse", "Nutritionist", "Paramedic", "Pharmacist",
+        "Photographer", "Pilot", "Police Officer", "Producer", "Professor",
+        "Programmer", "Project Manager", "Psychologist", "Public Relations",
+        "Real Estate Agent", "Researcher", "Sales Manager", "Scientist",
+        "Social Worker", "Software Engineer", "Streamer", "Student", "Surgeon",
+        "Teacher", "Translator", "Tutor", "UX Designer", "Veterinarian",
+        "Videographer", "Volunteer", "Waiter", "Writer", "YouTuber", "Other"
+    ]
+    
+    var filteredOccupations: [String] {
+        if occupationSearch.isEmpty { return occupationList }
+        return occupationList.filter { $0.localizedCaseInsensitiveContains(occupationSearch) }
+    }
     
     // Validation
     var isAgeValid: Bool {
@@ -58,8 +82,6 @@ struct ProfileSetupView: View {
                     occupationStep
                 case .height:
                     heightStep
-                case .university:
-                    universityStep
                 case .oneLineIntro:
                     oneLineIntroStep
                 case .selfIntro:
@@ -212,11 +234,11 @@ struct ProfileSetupView: View {
     
     var genderStep: some View {
         VStack(spacing: 30) {
-            Text("Who would you like to meet?")
+            Text("What is your gender?")
                 .font(.btHeader)
                 .foregroundColor(.btTeal)
             
-            HStack(spacing: 20) {
+            HStack(spacing: 15) {
                 BTSelectionButton(
                     title: "Female",
                     isSelected: gender == "Female",
@@ -227,6 +249,12 @@ struct ProfileSetupView: View {
                     title: "Male",
                     isSelected: gender == "Male",
                     action: { gender = "Male" }
+                )
+                
+                BTSelectionButton(
+                    title: "Other",
+                    isSelected: gender == "Other",
+                    action: { gender = "Other" }
                 )
             }
             .padding(.horizontal, 40)
@@ -240,13 +268,83 @@ struct ProfileSetupView: View {
     }
     
     var occupationStep: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 20) {
             Text("What is your occupation?")
                 .font(.btHeader)
                 .foregroundColor(.btTeal)
             
-            BTTextField(placeholder: "Designer, Developer, etc.", text: $occupation)
+            Text("Search or select from the list below.")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            // Search field
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                TextField("Type to search...", text: $occupationSearch)
+                    .autocapitalization(.words)
+                
+                if !occupationSearch.isEmpty {
+                    Button(action: { occupationSearch = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            .padding(12)
+            .background(Color.white)
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+            .padding(.horizontal, 40)
+            
+            // Selection indicator
+            if !occupation.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.btTeal)
+                    Text(occupation)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.btTeal)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.btTeal.opacity(0.1))
+                .cornerRadius(20)
+            }
+            
+            // Scrollable list
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    ForEach(filteredOccupations, id: \.self) { occ in
+                        Button(action: {
+                            occupation = occ
+                            occupationSearch = occ
+                        }) {
+                            HStack {
+                                Text(occ)
+                                    .font(.subheadline)
+                                    .foregroundColor(occupation == occ ? .white : .primary)
+                                Spacer()
+                                if occupation == occ {
+                                    Image(systemName: "checkmark")
+                                        .font(.caption.bold())
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(occupation == occ ? Color.btTeal : Color.white)
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(occupation == occ ? Color.btTeal : Color.gray.opacity(0.2), lineWidth: 1)
+                            )
+                        }
+                    }
+                }
                 .padding(.horizontal, 40)
+            }
+            .frame(maxHeight: 220)
             
             BTButton(title: "Next", action: {
                 userSession.occupation = occupation
@@ -279,66 +377,105 @@ struct ProfileSetupView: View {
             
             BTButton(title: "Next", action: {
                 userSession.height = height
-                curStep = .university
-            }, isDisabled: height.isEmpty)
-            .padding(.horizontal, 40)
-        }
-    }
-    
-    var universityStep: some View {
-        VStack(spacing: 30) {
-            Text("Which university did you graduate from?")
-                .font(.btHeader)
-                .foregroundColor(.btTeal)
-                .multilineTextAlignment(.center)
-            
-            BTTextField(placeholder: "University Name", text: $university)
-                .padding(.horizontal, 40)
-            
-            BTButton(title: "Next", action: {
-                userSession.university = university
                 curStep = .oneLineIntro
-            }, isDisabled: university.isEmpty)
+            }, isDisabled: height.isEmpty)
             .padding(.horizontal, 40)
         }
     }
     
 
     
+
+    
     // Helper function removed in favor of BTSelectionButton
     
     var oneLineIntroStep: some View {
-        VStack(spacing: 30) {
-            Text("Describe yourself in one line")
+        VStack(spacing: 24) {
+            Text("Your One-Line Intro")
                 .font(.btHeader)
                 .foregroundColor(.btTeal)
                 .multilineTextAlignment(.center)
             
-            BTTextField(placeholder: "e.g. A coffee-loving developer", text: $oneLineIntro)
+            Text("Write one sentence that shows off your charm!")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
+            
+            VStack(alignment: .trailing, spacing: 6) {
+                BTTextField(placeholder: "e.g. A coffee-loving designer who lives for sunsets ☕", text: $oneLineIntro)
+                    .padding(.horizontal, 40)
+                    .onChange(of: oneLineIntro) { _, newValue in
+                        // Limit to 80 characters
+                        if newValue.count > 80 {
+                            oneLineIntro = String(newValue.prefix(80))
+                        }
+                    }
+                
+                Text("\(oneLineIntro.count)/80")
+                    .font(.caption2)
+                    .foregroundColor(oneLineIntro.count >= 70 ? .orange : .gray)
+                    .padding(.trailing, 44)
+            }
             
             BTButton(title: "Next", action: {
                 userSession.oneLineIntro = oneLineIntro
                 curStep = .selfIntro
-            }, isDisabled: oneLineIntro.isEmpty)
+            }, isDisabled: oneLineIntro.trimmingCharacters(in: .whitespaces).isEmpty)
             .padding(.horizontal, 40)
         }
     }
     
     var selfIntroStep: some View {
-        VStack(spacing: 30) {
-            Text("Introduce yourself")
+        VStack(spacing: 20) {
+            Text("About Me")
                 .font(.btHeader)
                 .foregroundColor(.btTeal)
                 .multilineTextAlignment(.center)
             
-            TextEditor(text: $selfIntro)
-                .frame(height: 150)
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
-                .padding(.horizontal, 40)
+            // AI guidance message
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.btTeal)
+                    .font(.subheadline)
+                
+                Text("Our AI uses this to find your perfect match. Write as accurately and attractively as you can — the better your description, the better your matches!")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .background(Color.btTeal.opacity(0.08))
+            .cornerRadius(12)
+            .padding(.horizontal, 40)
+            
+            VStack(alignment: .trailing, spacing: 6) {
+                TextEditor(text: $selfIntro)
+                    .frame(height: 150)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                    .padding(.horizontal, 40)
+                    .onChange(of: selfIntro) { _, newValue in
+                        if newValue.count > 500 {
+                            selfIntro = String(newValue.prefix(500))
+                        }
+                    }
+                
+                HStack {
+                    if selfIntro.trimmingCharacters(in: .whitespacesAndNewlines).count < 20 && !selfIntro.isEmpty {
+                        Text("Please write at least one full sentence.")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                    Spacer()
+                    Text("\(selfIntro.count)/500")
+                        .font(.caption2)
+                        .foregroundColor(selfIntro.count >= 450 ? .orange : .gray)
+                }
+                .padding(.horizontal, 44)
+            }
             
             if isSaving {
                 ProgressView()
@@ -358,7 +495,6 @@ struct ProfileSetupView: View {
                     "gender": gender,
                     "occupation": occupation,
                     "height": height,
-                    "university": university,
                     "one_line_intro": oneLineIntro,
                     "self_intro": selfIntro,
                     "onboarding_step": "mbtiManualInput"
@@ -376,12 +512,11 @@ struct ProfileSetupView: View {
                         print("Error saving profile: \(error)")
                         await MainActor.run {
                             isSaving = false
-                            // Should probably show an error alert here
-                            router.navigate(to: .mbtiManualInput) // Fallback navigate? Better to show error.
+                            router.navigate(to: .mbtiManualInput)
                         }
                     }
                 }
-            }, isDisabled: selfIntro.isEmpty || isSaving)
+            }, isDisabled: selfIntro.trimmingCharacters(in: .whitespacesAndNewlines).count < 20 || isSaving)
             .padding(.horizontal, 40)
         }
     }

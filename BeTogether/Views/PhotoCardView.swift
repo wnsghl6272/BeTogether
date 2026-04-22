@@ -218,58 +218,111 @@ struct PhotoCardView: View {
             
             // Info Content
             VStack(alignment: .leading, spacing: 6) {
-                // Online Status Badge
-                if user.isOnline {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 8, height: 8)
-                        Text("Online")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
+                if currentImageIndex == 0 {
+                    // Page 1: Basic Info
+                    if user.isOnline {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 8, height: 8)
+                            Text("Online")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.black.opacity(0.5))
+                        .cornerRadius(10)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.black.opacity(0.5))
-                    .cornerRadius(10)
-                }
-                
-                // Name and Age
-                HStack(alignment: .firstTextBaseline) {
-                    Text(user.name)
-                        .font(.system(size: 28, weight: .heavy))
+                    
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(user.name)
+                            .font(.system(size: 28, weight: .heavy))
+                            .foregroundColor(.white)
+                        
+                        Text("\(user.age)")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
+                        
+                        if user.isVerified {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundColor(.btTeal)
+                                .font(.system(size: 18))
+                        }
+                    }
+                    
+                    HStack {
+                        Image(systemName: "location.fill")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.8))
+                        Text("\(user.region) • \(user.distance)km away")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    
+                    Text(user.mbti)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.btTeal)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.white)
+                        .cornerRadius(15)
+                        .padding(.top, 4)
+                        
+                } else if currentImageIndex == 1 {
+                    // Page 2: Lifestyle
+                    Text("Lifestyle")
+                        .font(.headline)
                         .foregroundColor(.white)
                     
-                    Text("\(user.age)")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                    if let lifestyle = user.lifestyle, !lifestyle.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(Array(lifestyle.keys.prefix(4)), id: \.self) { key in
+                                if let val = lifestyle[key] {
+                                    Text("\(key): \(val)")
+                                        .font(.caption)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.white.opacity(0.2))
+                                        .cornerRadius(8)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
+                    } else {
+                        Text("No lifestyle info available yet.")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
                     
-                    if user.isVerified {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundColor(.btTeal)
-                            .font(.system(size: 18))
+                } else {
+                    // Page 3+: Personality QA
+                    Text("Q&A")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    
+                    if let qa = user.personalQA, !qa.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Show first 2 QAs to save space
+                            let previewQA = Array(qa).prefix(2)
+                            ForEach(previewQA, id: \.key) { item in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Q: \(item.key)")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white.opacity(0.8))
+                                    Text("A: \(item.value)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
+                    } else {
+                        Text("No Q&A provided.")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
                     }
                 }
-                
-                // Region and Distance
-                HStack {
-                    Image(systemName: "location.fill")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                    Text("\(user.region) • \(user.distance)km away")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-                
-                // MBTI Tag
-                Text(user.mbti)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.btTeal)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color.white)
-                    .cornerRadius(15)
-                    .padding(.top, 4)
                 
                 // Action Buttons
                 HStack(spacing: 20) {

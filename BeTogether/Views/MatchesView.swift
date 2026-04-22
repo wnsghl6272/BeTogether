@@ -112,23 +112,31 @@ struct DailyPickCardView: View {
     var body: some View {
         ZStack {
             // Background Image
-            if user.imageName.hasPrefix("http") {
-                SimulatorSafeAsyncImage(url: URL(string: user.imageName)) { image in
-                    image.resizable().aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle().fill(Color.gray.opacity(0.2))
-                } errorView: { _ in
-                    Rectangle().fill(Color.gray.opacity(0.2))
+            GeometryReader { geo in
+                if user.imageName.hasPrefix("http") {
+                    SimulatorSafeAsyncImage(url: URL(string: user.imageName)) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geo.size.width, height: 380)
+                            .clipped()
+                    } placeholder: {
+                        Rectangle().fill(Color.gray.opacity(0.2))
+                            .frame(width: geo.size.width, height: 380)
+                    } errorView: { _ in
+                        Rectangle().fill(Color.gray.opacity(0.2))
+                            .frame(width: geo.size.width, height: 380)
+                    }
+                } else {
+                    Image(user.imageName)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: 380)
+                        .clipped()
                 }
-                .frame(height: 380)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-            } else {
-                Image(user.imageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 380)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
             }
+            .frame(height: 380)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
             
             // Blur Effect if Locked
             if !isUnlocked {

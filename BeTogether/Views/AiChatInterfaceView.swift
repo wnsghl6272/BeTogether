@@ -8,11 +8,57 @@ struct AiChatInterfaceView: View {
     @State private var matchReasonsArray: [[String]] = []
     @State private var showMatchesModal: Bool = false
     @State private var matchedByPreference: Bool = true
+    @State private var showMBTIModal: Bool = false
+    
+    let sampleMBTITags = ["INTJ", "INFP", "ENFP", "ENTJ", "ISFJ", "ESFP", "INFJ", "ESTJ", "ISFP", "INTP", "ESTP", "ISTP", "ESFJ", "ENFJ", "ENTP", "ISTJ"]
     
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 20) {
+                    
+                    // ── MBTI Compatibility Guide Banner ──
+                    Button(action: {
+                        showMBTIModal = true
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("MBTI Compatibility Guide")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.black)
+                                Text("Tap to find your perfect match type")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(
+                            LinearGradient(gradient: Gradient(colors: [Color.pink.opacity(0.15), Color.purple.opacity(0.1)]), startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal, 14)
+                    .sheet(isPresented: $showMBTIModal) {
+                        // Mock MBTI Info View
+                        NavigationView {
+                            ScrollView {
+                                VStack(spacing: 20) {
+                                    Text("Coming Soon: Detailed compatibility guides for each MBTI type!")
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding()
+                                }
+                            }
+                            .navigationTitle("MBTI Guide")
+                            .navigationBarTitleDisplayMode(.inline)
+                        }
+                    }
+
                     VStack(spacing: 0) {
                         // ── Header ──
                         HStack(spacing: 10) {
@@ -55,7 +101,7 @@ struct AiChatInterfaceView: View {
                                     .frame(minHeight: 90)
                                 
                                 if query.isEmpty {
-                                    Text("e.g. I want to meet a 23-28 y/o non-smoker who loves working out and is an ISTJ...")
+                                    Text("e.g. I want to meet a 23-28 y/o non-smoker who loves working out...")
                                         .font(.subheadline)
                                         .foregroundColor(Color(.systemGray3))
                                         .padding(.horizontal, 14)
@@ -72,6 +118,40 @@ struct AiChatInterfaceView: View {
                                     .disabled(isPredicting)
                             }
                             .padding(.horizontal, 16)
+                            
+                            // ── MBTI Quick Tags ──
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Looking for specific MBTI?")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.secondary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 4)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(sampleMBTITags, id: \.self) { mbti in
+                                            Button(action: {
+                                                if query.isEmpty {
+                                                    query = mbti
+                                                } else {
+                                                    query += ", \(mbti)"
+                                                }
+                                            }) {
+                                                Text(mbti)
+                                                    .font(.caption)
+                                                    .padding(.horizontal, 12)
+                                                    .padding(.vertical, 6)
+                                                    .background(query.contains(mbti) ? Color.btTeal : Color.btTeal.opacity(0.1))
+                                                    .foregroundColor(query.contains(mbti) ? .white : .btTeal)
+                                                    .cornerRadius(12)
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                }
+                            }
+                            .padding(.bottom, 8)
                             
                             // ── Send Button ──
                             HStack {
@@ -122,11 +202,24 @@ struct AiChatInterfaceView: View {
                                 Spacer()
                             }
                             
-                            if !matchedByPreference {
+                            if matchedByPreference {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "sparkles")
+                                        .foregroundColor(.green)
+                                    Text("We found perfect matches based on your preferences! ✨")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 6)
+                                .background(Color.green.opacity(0.08))
+                                .cornerRadius(8)
+                                .padding(.horizontal, 14)
+                            } else {
                                 HStack(spacing: 6) {
                                     Image(systemName: "info.circle.fill")
                                         .foregroundColor(.orange)
-                                    Text("No exact preference matches found. Recommended based on your query.")
+                                    Text("It seems your perfect match is away, so we slightly broadened your criteria to find someone you might click with!")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -149,6 +242,26 @@ struct AiChatInterfaceView: View {
                         .id("matchesResult")
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: showMatchesModal)
+                    } else {
+                        // ── Placeholder if no results / not searched ──
+                        VStack {
+                            Spacer()
+                            Text("Your destined partner will appear\nhere soon.")
+                                .multilineTextAlignment(.center)
+                                .font(.subheadline)
+                                .foregroundColor(Color.gray.opacity(0.6))
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: max(200, UIScreen.main.bounds.height - 450))
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [8, 4]))
+                                .foregroundColor(Color.gray.opacity(0.3))
+                        )
+                        .padding(.horizontal, 14)
+                        .padding(.top, 10)
+                        .padding(.bottom, 20)
                     }
                 }
                 .padding(.vertical, 10)
@@ -283,13 +396,40 @@ struct AiChatInterfaceView: View {
                 let currentYear = Calendar.current.component(.year, from: Date())
                 let calculatedAge = currentYear - birthYear
 
-                let newUser = User(
+                // Fetch user traits (Lifestyle, QA)
+                struct QAItem: Decodable {
+                    let question: String
+                    let answer: String
+                }
+                struct TraitResult: Decodable {
+                    let lifestyle: [String: String]?
+                    let answers: [QAItem]?
+                    let mbti: String?
+                }
+                var userLifestyle: [String: String] = [:]
+                var userQA: [String: String] = [:]
+                var userMBTI: String = "N/A"
+                if let traitData: [TraitResult] = try? await AuthManager.shared.client.from("user_traits")
+                    .select("lifestyle, answers, mbti")
+                    .eq("user_id", value: item.candidate.id)
+                    .execute()
+                    .value, let firstTrait = traitData.first {
+                    userLifestyle = firstTrait.lifestyle ?? [:]
+                    if let fetchedAnswers = firstTrait.answers {
+                        for qa in fetchedAnswers {
+                            userQA[qa.question] = qa.answer
+                        }
+                    }
+                    userMBTI = firstTrait.mbti ?? "N/A"
+                }
+
+                var newUser = User(
                     supabaseId: item.candidate.id,
                     name: item.candidate.full_name ?? item.candidate.nickname ?? "Unknown",
                     age: calculatedAge,
                     region: "Online",
                     distance: 0,
-                    mbti: item.candidate.mbti ?? "N/A",
+                    mbti: userMBTI,
                     isOnline: true,
                     isVerified: true,
                     imageName: fetchedImageName,
@@ -302,6 +442,9 @@ struct AiChatInterfaceView: View {
                     selfIntro: "Recommended by AI Matchmaker.",
                     imageNames: allImageNames
                 )
+                newUser.lifestyle = userLifestyle
+                newUser.personalQA = userQA
+                
                 newMatchedUsers.append(newUser)
                 newMatchReasonsArray.append([
                     item.reasons.step1,

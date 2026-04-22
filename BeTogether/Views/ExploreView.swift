@@ -331,11 +331,15 @@ struct MatchCardView: View {
     let user: User
     var onUnmatch: (() -> Void)? = nil
     @State private var showUnmatchAlert = false
+    @State private var showProfileCard = false
     
     var body: some View {
         VStack(spacing: 8) {
-            ProfileAvatarView(imageUrl: user.imageName)
-                .overlay(Circle().stroke(Color.btTeal, lineWidth: 3))
+            Button(action: { showProfileCard = true }) {
+                ProfileAvatarView(imageUrl: user.imageName)
+                    .overlay(Circle().stroke(Color.btTeal, lineWidth: 3))
+            }
+            .buttonStyle(.plain)
             
             Text(user.name)
                 .font(.subheadline)
@@ -386,6 +390,10 @@ struct MatchCardView: View {
             Button("Unmatch", role: .destructive) { onUnmatch?() }
         } message: {
             Text("Are you sure you want to unmatch \(user.name)? This will also delete your chat history.")
+        }
+        .sheet(isPresented: $showProfileCard) {
+            FriendProfileCard(user: user)
+                .presentationDetents([.medium])
         }
     }
 }
@@ -542,6 +550,7 @@ struct FriendRowView: View {
 struct FriendProfileCard: View {
     let user: User
     @Environment(\.dismiss) private var dismiss
+    @State private var showFullScreen = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -557,11 +566,17 @@ struct FriendProfileCard: View {
             .padding(.horizontal)
             .padding(.top, 12)
             
-            ProfileAvatarView(imageUrl: user.imageName, size: 100)
-                .overlay(
-                    Circle()
-                        .stroke(Color.btTeal, lineWidth: 3)
-                )
+            Button(action: { showFullScreen = true }) {
+                ProfileAvatarView(imageUrl: user.imageName, size: 100)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.btTeal, lineWidth: 3)
+                    )
+            }
+            .buttonStyle(.plain)
+            .fullScreenCover(isPresented: $showFullScreen) {
+                FullScreenImageView(imageUrl: user.imageName)
+            }
             
             Text(user.name)
                 .font(.title2)
@@ -649,24 +664,75 @@ struct ProfileAvatarView: View {
                 SimulatorSafeAsyncImage(url: URL(string: imageUrl)) { image in
                     image
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
+                        .scaledToFill()
+                        .frame(width: size, height: size)
+                        .clipped()
                 } placeholder: {
                     Rectangle()
                         .fill(Color(.systemGray5))
                         .overlay(ProgressView())
+                        .frame(width: size, height: size)
                 } errorView: { _ in
                     Image(systemName: "person.fill")
                         .foregroundColor(.gray)
+                        .frame(width: size, height: size)
                 }
             } else {
                 Image(imageUrl)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipped()
             }
         }
-        .frame(width: size, height: size)
         .clipShape(Circle())
         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+    }
+}
+
+// MARK: - Full Screen Image View
+struct FullScreenImageView: View {
+    let imageUrl: String
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            if imageUrl.hasPrefix("http") {
+                SimulatorSafeAsyncImage(url: URL(string: imageUrl)) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                } placeholder: {
+                    ProgressView()
+                        .tint(.white)
+                } errorView: { _ in
+                    Image(systemName: "person.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundColor(.gray)
+                        .padding()
+                }
+            } else {
+                Image(imageUrl)
+                    .resizable()
+                    .scaledToFit()
+            }
+            
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding()
+                    }
+                }
+                Spacer()
+            }
+        }
     }
 }
 

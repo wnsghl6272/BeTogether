@@ -16,7 +16,7 @@ class UserSessionViewModel: ObservableObject {
     @Published var gender: String = ""
     @Published var occupation: String = ""
     @Published var height: String = ""
-    @Published var university: String = ""
+
     @Published var oneLineIntro: String = "" // New
     @Published var selfIntro: String = ""    // New
     
@@ -28,13 +28,11 @@ class UserSessionViewModel: ObservableObject {
     
     // Matching Preferences
     @Published var preferredGender: String = ""
-    @Published var minAge: Double = 20
     @Published var maxAge: Double = 35
     @Published var maxDistance: Double = 10
     @Published var prioritizeActiveUsers: Bool = false
     @Published var filterSmoking: [String] = []
     @Published var filterDrinking: [String] = []
-    @Published var filterMBTI: [String] = []
     
     enum OnboardingStep {
         case landing

@@ -33,15 +33,23 @@ serve(async (req) => {
 
     if (userError || !currentUser) throw new Error('User not found: ' + JSON.stringify(userError))
 
-    // 2. Get current user's MBTI from user_traits
+    // 2. Get current user's MBTI and preferences from user_traits
     const { data: currentTraitRows } = await supabaseClient
       .from('user_traits')
-      .select('mbti')
+      .select('mbti, matching_preferences')
       .eq('user_id', userId)
       .limit(1)
 
     const currentMbti = currentTraitRows && currentTraitRows.length > 0 ? currentTraitRows[0].mbti : null
-    console.log('currentMbti:', currentMbti)
+    const prefs = currentTraitRows && currentTraitRows.length > 0 ? currentTraitRows[0].matching_preferences : null
+    
+    // Default preferences if not found
+    const preferredGender = prefs?.preferredGender ?? 'Any'
+    const prioritizeActive = prefs?.prioritizeActiveUsers ?? false
+    let maxDistance = prefs?.maxDistance ?? 50
+    let maxAge = prefs?.maxAge ?? 100
+    
+    console.log('currentMbti:', currentMbti, 'preferredGender:', preferredGender, 'maxDistance:', maxDistance, 'maxAge:', maxAge, 'prioritizeActive:', prioritizeActive)
 
     // 3. Fetch all other users' profiles (excluding admin role, only approved)
     const { data: candidateProfiles, error: candidatesError } = await supabaseClient
@@ -75,9 +83,78 @@ serve(async (req) => {
       })
     }
 
-    const filteredCandidates = candidateProfiles.filter((c: any) => !excludedIds.has(c.id))
+    // Add distance calculation helper
+    function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+      if (!lat1 || !lon1 || !lat2 || !lon2) return 9999;
+      const R = 6371; // km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2); 
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
 
-    // 4. Fetch traits for all candidates
+    const unblockedCandidates = candidateProfiles.filter((c: any) => !excludedIds.has(c.id))
+
+    // Fallback Logic Arrays
+    let strictCandidates: any[] = []
+    let relaxedCandidates: any[] = []
+
+    const currentYear = new Date().getFullYear()
+    const currentLat = currentUser.latitude
+    const currentLon = currentUser.longitude
+
+    unblockedCandidates.forEach((c: any) => {
+      // Base Filters: Gender
+      let genderMatch = true
+      if (preferredGender !== 'Any' && c.gender && c.gender.toLowerCase() !== preferredGender.toLowerCase()) {
+        genderMatch = false
+      }
+
+      // Base Filters: Active Status
+      let activeMatch = true
+      if (prioritizeActive && c.last_active_at) {
+        const lastActive = new Date(c.last_active_at).getTime()
+        const daysSinceActive = (new Date().getTime() - lastActive) / (1000 * 3600 * 24)
+        if (daysSinceActive > 3) activeMatch = false // 3 days cutoff
+      } else if (prioritizeActive && !c.last_active_at) {
+         activeMatch = false
+      }
+
+      if (!genderMatch || !activeMatch) return; // Drop completely if gender or active priority fails
+
+      const age = c.birth_date ? currentYear - new Date(c.birth_date).getFullYear() : 99
+      const distance = calculateDistance(currentLat, currentLon, c.latitude, c.longitude)
+
+      // Strict check
+      const ageMatch = age <= maxAge
+      const distMatch = distance <= maxDistance
+
+      if (ageMatch && distMatch) {
+         strictCandidates.push(c)
+      } else if (age <= (maxAge + 10)) {
+         // Relaxed check: Allow +10 years and completely ignore distance
+         relaxedCandidates.push(c)
+      }
+    })
+
+    let matchedByPreference = true
+    let filteredCandidates = strictCandidates
+    
+    if (strictCandidates.length < 4) {
+      matchedByPreference = false
+      // Combine strict and relaxed, remove duplicates
+      const comb = [...strictCandidates, ...relaxedCandidates]
+      const uniqueIds = new Set()
+      filteredCandidates = comb.filter(c => {
+         if (uniqueIds.has(c.id)) return false
+         uniqueIds.add(c.id)
+         return true
+      })
+    }
+
+    // 4. Fetch traits for all chosen candidates
     const candidateIds = filteredCandidates.map((c: any) => c.id)
     if (candidateIds.length === 0) {
       throw new Error('No potential candidates available to match (You are the only user).')
@@ -138,7 +215,7 @@ The current user's info: MBTI is ${currentMbti}, Age is ${new Date().getFullYear
 Here is a list of potential candidates:
 ${candidatesContext}
 
-Based ONLY on the user's query and the candidates provided, find up to 3 of the best matching candidates (if the user asks for "anyone" or "all", provide up to 3 diverse matching candidates).
+Based ONLY on the user's query and the candidates provided, find up to 4 of the best matching candidates (if the user asks for "anyone" or "all", provide up to 4 diverse matching candidates).
 You MUST choose exact Candidate IDs from the list above. Do not invent an ID or use "Unknown". If no one fits, return an empty array.
 You must return the response in strict JSON format matching exactly this structure:
 {
@@ -197,7 +274,8 @@ Do not include any other text besides the JSON object.`
     }
 
     const finalResponse = {
-      candidates: finalCandidates
+      candidates: finalCandidates,
+      matchedByPreference: matchedByPreference
     }
 
     return new Response(JSON.stringify(finalResponse), {

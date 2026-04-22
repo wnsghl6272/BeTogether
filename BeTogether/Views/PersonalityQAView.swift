@@ -275,6 +275,23 @@ struct LifestyleOptionsView: View {
         isSaving = true
         userSession.lifestyle = selections
         
+        // Pre-populate matching preference filters from lifestyle choices
+        if let smoking = selections["Smoking"] {
+            userSession.filterSmoking = [smoking]
+        }
+        if let drinking = selections["Drinking"] {
+            userSession.filterDrinking = [drinking]
+        }
+        // Pre-populate preferred gender from the user's own gender
+        // (e.g. if user is Male, default matching preference to Female and vice versa)
+        if userSession.preferredGender.isEmpty {
+            switch userSession.gender {
+            case "Male": userSession.preferredGender = "Female"
+            case "Female": userSession.preferredGender = "Male"
+            default: userSession.preferredGender = "Any"
+            }
+        }
+        
         Task {
             do {
                 // Update lifestyle via AuthManager

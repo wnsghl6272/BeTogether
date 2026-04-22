@@ -279,7 +279,68 @@ Streamlined the complete onboarding flow and significantly remodeled how user pr
 - **MatchingPreferenceView Redesign**: Redesigned the preference page combining a sticky Location row with interactive, dynamically-sized multi-selectable grid layouts that store attributes globally.
 - Re-wired the data pipeline to handle categorical array lists directly into the `matching_preferences` JSON.
 
+### Phase 15 — Onboarding Quality Enhancement, Profile Photo Management & UI Polish
+
+온보딩 흐름 고도화, 프로필 사진 사후 관리, 매칭 프리퍼런스 정리 및 Explore UI 정렬 수정.
+
+#### 구성 요소
+
+**1. 프로필 사진 사후 관리 시스템 (`ProfilePhotoEditView`)**
+- `ProfileMainView` 하단에 "Manage Photos" 버튼 추가. 온보딩 이후에도 사진을 추가, 삭제, 재정렬 가능.
+- 온보딩과 동일한 얼굴 인식 (`VisionManager.shared.detectSingleFace`) 적용: 첫 두 장은 반드시 얼굴이 포함된 사진이어야 함.
+- 온보딩과 동일한 이미지 압축(HEIC/JPEG) 파이프라인 재사용으로 서버 스토리지 비용 절감.
+- **사후 사진 수정 시 `pending_approval` 상태 변경 없음** — 온보딩 승인 이후에는 사진 변경으로 인한 재승인 대기가 발생하지 않음.
+
+**2. Matching Preferences — Workout Preference 제거**
+- `MatchingPreferenceView` (온보딩) 및 `MatchingPreferenceEditView` (설정)에서 "Workout Preference" 필터 섹션 완전 제거.
+- Workout 데이터는 `user_traits.lifestyle` JSONB에서 관리되므로 매칭 프리퍼런스와의 중복 저장 해소.
+- 관련 State, Options 배열, UI 섹션, 데이터 로드/저장 로직 모두 정리.
+
+**3. 온보딩 University 스텝 제거**
+- `ProfileSetupView`에서 `.university` 스텝 enum, UI, 저장 로직 완전 제거.
+- `ProfileEditView`에서 University 입력 필드 제거.
+- `UserSessionViewModel`에서 `university` 프로퍼티 제거.
+- 기존 유저의 `university` DB 컬럼은 유지 — `ProfileMainView`에서 기존 데이터가 있으면 표시.
+- 학력 정보는 Lifestyle Options의 "Education" 카테고리에서 선택 가능.
+
+**4. Occupation — 자유 입력 → 검색형 선택 리스트**
+- `ProfileSetupView`: 기존 자유 텍스트 입력 → 80개 이상의 직업 목록에서 검색/선택하는 방식으로 전환.
+- 검색 필드에 타이핑하면 실시간 필터링. 선택된 직업은 체크마크 뱃지로 표시.
+- `OccupationPickerSheet.swift` 신규 생성: `ProfileEditView`에서도 동일한 모달 시트로 직업 변경 가능한 재사용 컴포넌트.
+
+**5. One-Line Intro — 가이드 텍스트 및 글자 수 제한**
+- 제목을 "Your One-Line Intro"로 변경, "Write one sentence that shows off your charm!" 안내 문구 추가.
+- **80자 글자 수 제한** (`onChange`로 강제 적용).
+- 실시간 글자 카운터 (`/80`) 표시, 70자 이상 시 오렌지색 경고.
+- 빈 문자열/공백만 입력 시 Next 버튼 비활성화.
+
+**6. About Me (Self Intro) — AI 매칭 가이드 및 최소 글자 수**
+- 제목을 "About Me"로 변경.
+- AI 가이드 배너 추가: "Our AI uses this to find your perfect match. Write as accurately and attractively as you can — the better your description, the better your matches!"
+- **500자 글자 수 제한** 및 **최소 20자 요구** (약 한 문장 이상).
+- 20자 미만 입력 시 "Please write at least one full sentence." 경고 표시 + Complete Profile 버튼 비활성화.
+- `ProfileEditView`에서도 동일한 글자 수 제한 및 AI 가이드 아이콘 표시.
+
+**7. Explore 메뉴 — DailyPickCardView 이미지 중앙 정렬 수정**
+- **문제**: `.scaledToFill()` + `.frame(maxWidth: .infinity)` + `.clipped()` 조합에서 이미지가 부모 컨테이너보다 크게 확장되면서 iPhone에서 왼쪽으로 치우쳐 잘리는 현상 발생.
+- **해결**: `GeometryReader`로 감싸서 정확한 부모 컨테이너 너비(`geo.size.width`)를 이미지 frame에 전달. 이미지가 정확히 카드 너비에 맞춰 중앙 정렬되도록 수정.
+
+#### 변경 파일 목록
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `ProfilePhotoEditView.swift` | [NEW] 프로필 사진 사후 관리 뷰 |
+| `OccupationPickerSheet.swift` | [NEW] 재사용 가능한 직업 검색/선택 시트 |
+| `ProfileSetupView.swift` | University 스텝 제거, Occupation 검색 리스트, Intro 가이드 및 제한 |
+| `ProfileEditView.swift` | University 필드 제거, Occupation 시트, Intro 가이드 및 제한 |
+| `ProfileMainView.swift` | Manage Photos 버튼 추가 |
+| `MatchingPreferenceView.swift` | Workout Preference 제거 |
+| `MatchingPreferenceEditView.swift` | Workout Preference 제거 |
+| `UserSessionViewModel.swift` | `university` 프로퍼티 제거 |
+| `MatchesView.swift` | DailyPickCardView 이미지 중앙 정렬 수정 |
+
 ---
+
 
 ## Future Features
 

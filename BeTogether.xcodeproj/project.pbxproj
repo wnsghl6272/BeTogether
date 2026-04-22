@@ -13,6 +13,7 @@
 		32F41EE65CCD24011E3BA36F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 098415BC677CC23C62B04632 /* Supabase */; };
 		51C828FCDDDD720D244511C3 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E486B4577D0B815468A20B24 /* AuthManager.swift */; };
 		5CE38AD211B679A099D4AE4B /* BlockedContactsManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 715E64A39878696012DB9CD9 /* BlockedContactsManagerView.swift */; };
+		6276BFEA87BA8F8708E0F85A /* OccupationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BAA19185217411CA65DFA24 /* OccupationPickerSheet.swift */; };
 		69435F432F3F3593002A6F5D /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F402F3F3593002A6F5D /* LocationPermissionView.swift */; };
 		69435F442F3F3593002A6F5D /* MatchingPreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */; };
 		69435F452F3F3593002A6F5D /* NotificationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */; };
@@ -48,6 +49,7 @@
 		69435FB32F4C745C002A6F5D /* RangeSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB02F4C745C002A6F5D /* RangeSlider.swift */; };
 		69435FB62F4C746A002A6F5D /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB42F4C746A002A6F5D /* PermissionManager.swift */; };
 		69435FB72F4C746A002A6F5D /* VisionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69435FB52F4C746A002A6F5D /* VisionManager.swift */; };
+		6978DB2D2F98D528004C68EF /* ProfilePhotoEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6978DB2C2F98D528004C68EF /* ProfilePhotoEditView.swift */; };
 		699263C72F80CA63007156F0 /* ChatRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699263C52F80CA63007156F0 /* ChatRoomView.swift */; };
 		699263C82F80CA63007156F0 /* ChatRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699263C62F80CA63007156F0 /* ChatRootView.swift */; };
 		699263CA2F80CA7E007156F0 /* ChatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699263C92F80CA7E007156F0 /* ChatManager.swift */; };
@@ -103,6 +105,7 @@
 		1ECBEA4AD14E0F8826CDE8B3 /* NotificationAlertOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationAlertOverlay.swift; sourceTree = "<group>"; };
 		3489DB823DDEC810AD4A757B /* Config.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		4006180EF4303232FFB27F04 /* UIImage+HEIC.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "UIImage+HEIC.swift"; sourceTree = "<group>"; };
+		5BAA19185217411CA65DFA24 /* OccupationPickerSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OccupationPickerSheet.swift; sourceTree = "<group>"; };
 		69435F402F3F3593002A6F5D /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		69435F412F3F3593002A6F5D /* MatchingPreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchingPreferenceView.swift; sourceTree = "<group>"; };
 		69435F422F3F3593002A6F5D /* NotificationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionView.swift; sourceTree = "<group>"; };
@@ -138,6 +141,7 @@
 		69435FB02F4C745C002A6F5D /* RangeSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangeSlider.swift; sourceTree = "<group>"; };
 		69435FB42F4C746A002A6F5D /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
 		69435FB52F4C746A002A6F5D /* VisionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionManager.swift; sourceTree = "<group>"; };
+		6978DB2C2F98D528004C68EF /* ProfilePhotoEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePhotoEditView.swift; sourceTree = "<group>"; };
 		699263C52F80CA63007156F0 /* ChatRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomView.swift; sourceTree = "<group>"; };
 		699263C62F80CA63007156F0 /* ChatRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRootView.swift; sourceTree = "<group>"; };
 		699263C92F80CA7E007156F0 /* ChatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatManager.swift; sourceTree = "<group>"; };
@@ -286,6 +290,7 @@
 		G003 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				6978DB2C2F98D528004C68EF /* ProfilePhotoEditView.swift */,
 				699263C52F80CA63007156F0 /* ChatRoomView.swift */,
 				699263C62F80CA63007156F0 /* ChatRootView.swift */,
 				69435F552F434D6D002A6F5D /* Effects */,
@@ -323,6 +328,7 @@
 				13ACC6739314CAA322CAC647 /* ProfileEditView.swift */,
 				715E64A39878696012DB9CD9 /* BlockedContactsManagerView.swift */,
 				E6558A1E38870FF6393AFBA6 /* MatchingPreferenceEditView.swift */,
+				5BAA19185217411CA65DFA24 /* OccupationPickerSheet.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -491,6 +497,7 @@
 				B007 /* TermsView.swift in Sources */,
 				B008 /* EmailInputView.swift in Sources */,
 				69E531312F60FC9A0028598B /* AiRevealEffectView.swift in Sources */,
+				6978DB2D2F98D528004C68EF /* ProfilePhotoEditView.swift in Sources */,
 				B009 /* ProfileSetupView.swift in Sources */,
 				B010 /* HomeView.swift in Sources */,
 				B011 /* UserSessionViewModel.swift in Sources */,
@@ -535,6 +542,7 @@
 				06E409EFBAF07816A88CC392 /* UIImage+HEIC.swift in Sources */,
 				5CE38AD211B679A099D4AE4B /* BlockedContactsManagerView.swift in Sources */,
 				E4C8BA3216094D4BE96B3B97 /* MatchingPreferenceEditView.swift in Sources */,
+				6276BFEA87BA8F8708E0F85A /* OccupationPickerSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

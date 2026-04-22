@@ -60,6 +60,25 @@ struct HomeView: View {
             .sheet(isPresented: $showPreferences) {
                 MatchingPreferenceEditView()
             }
+            .onAppear {
+                Task {
+                    let lat = PermissionManager.shared.currentLocation?.coordinate.latitude ?? 0.0
+                    let lon = PermissionManager.shared.currentLocation?.coordinate.longitude ?? 0.0
+                    let formatter = ISO8601DateFormatter()
+                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    let nowStr = formatter.string(from: Date())
+                    
+                    do {
+                        try await AuthManager.shared.updateProfile(data: [
+                            "last_active_at": nowStr,
+                            "latitude": lat,
+                            "longitude": lon
+                        ])
+                    } catch {
+                        print("Failed to update activity status: \(error)")
+                    }
+                }
+            }
         }
     }
 }

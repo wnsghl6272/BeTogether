@@ -6,6 +6,7 @@ struct ProfileMainView: View {
     
     @State private var profile: ProfileData? = nil
     @State private var photos: [AuthManager.UserPhotoRecord] = []
+    @State private var lifestyleData: [String: String] = [:]
     @State private var isLoading = true
     @State private var isEditing = false
     @State private var showBlockedContacts = false
@@ -13,6 +14,7 @@ struct ProfileMainView: View {
     @State private var showDeleteAlert = false
     @State private var isBreakActive = false
     @State private var showReportSheet = false
+    @State private var showPhotoEdit = false
     
     var body: some View {
         NavigationView {
@@ -69,6 +71,11 @@ struct ProfileMainView: View {
             .sheet(isPresented: $showReportSheet) {
                 ReportSubmissionView()
             }
+            .sheet(isPresented: $showPhotoEdit) {
+                ProfilePhotoEditView {
+                    loadProfileData()
+                }
+            }
             .onAppear {
                 loadProfileData()
             }
@@ -123,6 +130,19 @@ struct ProfileMainView: View {
                     )
                     .padding(.horizontal)
             }
+            
+            // Edit Photos Button
+            Button(action: { showPhotoEdit = true }) {
+                HStack {
+                    Image(systemName: "photo.on.rectangle.angled")
+                    Text("Manage Photos")
+                        .fontWeight(.semibold)
+                }
+                .font(.subheadline)
+                .foregroundColor(.btTeal)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.horizontal)
+            }
         }
     }
     
@@ -169,9 +189,15 @@ struct ProfileMainView: View {
             ProfileDetailRow(icon: "briefcase", title: "Occupation", value: profile.occupation ?? "Not set")
             ProfileDetailRow(icon: "ruler", title: "Height", value: profile.height ?? "Not set")
             ProfileDetailRow(icon: "building.columns", title: "University", value: profile.university ?? "Not set")
-            ProfileDetailRow(icon: "wineglass", title: "Drinking", value: profile.drinking ?? "Not set")
-            ProfileDetailRow(icon: "smoke", title: "Smoking", value: profile.smoking ?? "Not set")
             ProfileDetailRow(icon: "person.text.rectangle", title: "Gender", value: profile.gender ?? "Not set")
+            
+            // Lifestyle data from user_traits
+            if !lifestyleData.isEmpty {
+                Divider().padding(.leading, 50)
+                ForEach(lifestyleData.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                    ProfileDetailRow(icon: iconForLifestyle(key), title: key, value: value)
+                }
+            }
             
             if let selfIntro = profile.self_intro, !selfIntro.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -192,6 +218,21 @@ struct ProfileMainView: View {
         .cornerRadius(16)
         .padding(.horizontal)
         .shadow(color: .black.opacity(0.03), radius: 5, y: 2)
+    }
+    
+    private func iconForLifestyle(_ key: String) -> String {
+        switch key {
+        case "Zodiac Sign": return "sparkles"
+        case "Education": return "graduationcap"
+        case "Family Plans": return "person.3.fill"
+        case "Communication Style": return "message"
+        case "Love Language": return "heart"
+        case "Pets": return "pawprint"
+        case "Drinking": return "wineglass"
+        case "Smoking": return "smoke"
+        case "Workout": return "figure.run"
+        default: return "circle"
+        }
     }
     
     // MARK: - Settings Section
@@ -421,16 +462,16 @@ struct ProfileMainView: View {
                 
                 // Fetch profile
                 let profileResult: [ProfileData] = try await client.from("profiles")
-                    .select("id, full_name, nickname, birth_date, occupation, height, university, drinking, smoking, gender, one_line_intro, self_intro, status")
+                    .select("id, full_name, nickname, birth_date, occupation, height, university, gender, one_line_intro, self_intro, status")
                     .eq("id", value: userId)
                     .setHeader(name: "Authorization", value: "Bearer \(token)")
                     .execute()
                     .value
                 
-                // Fetch MBTI from user_traits
-                struct TraitResult: Decodable { let mbti: String? }
+                // Fetch MBTI and lifestyle from user_traits
+                struct TraitResult: Decodable { let mbti: String?; let lifestyle: [String: String]? }
                 let traits: [TraitResult] = (try? await client.from("user_traits")
-                    .select("mbti")
+                    .select("mbti, lifestyle")
                     .eq("user_id", value: userId)
                     .setHeader(name: "Authorization", value: "Bearer \(token)")
                     .execute()
@@ -454,6 +495,7 @@ struct ProfileMainView: View {
                     
                     self.profile = profileData
                     self.photos = userPhotos
+                    self.lifestyleData = traits.first?.lifestyle ?? [:]
                     self.isBreakActive = (profileData?.status == "paused")
                     self.isLoading = false
                 }
@@ -479,8 +521,6 @@ struct ProfileData: Decodable {
     var occupation: String?
     var height: String?
     var university: String?
-    var drinking: String?
-    var smoking: String?
     var gender: String?
     var one_line_intro: String?
     var self_intro: String?
@@ -490,7 +530,7 @@ struct ProfileData: Decodable {
     
     enum CodingKeys: String, CodingKey {
         case id, full_name, nickname, birth_date, occupation, height, university
-        case drinking, smoking, gender, one_line_intro, self_intro, status
+        case gender, one_line_intro, self_intro, status
     }
     
     init(from decoder: Decoder) throws {
@@ -502,8 +542,6 @@ struct ProfileData: Decodable {
         occupation = try c.decodeIfPresent(String.self, forKey: .occupation)
         height = try c.decodeIfPresent(String.self, forKey: .height)
         university = try c.decodeIfPresent(String.self, forKey: .university)
-        drinking = try c.decodeIfPresent(String.self, forKey: .drinking)
-        smoking = try c.decodeIfPresent(String.self, forKey: .smoking)
         gender = try c.decodeIfPresent(String.self, forKey: .gender)
         one_line_intro = try c.decodeIfPresent(String.self, forKey: .one_line_intro)
         self_intro = try c.decodeIfPresent(String.self, forKey: .self_intro)
