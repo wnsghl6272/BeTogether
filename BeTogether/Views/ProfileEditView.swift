@@ -73,6 +73,18 @@ struct ProfileEditView: View {
                     }
                     
                     HStack {
+                        Label("Phone Number", systemImage: "phone.fill")
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Text(profile.phone ?? "")
+                                .foregroundColor(.secondary)
+                            Image(systemName: "lock.fill")
+                                .font(.caption2)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    
+                    HStack {
                         Label("Nickname (ID)", systemImage: "tag")
                         Spacer()
                         HStack(spacing: 4) {

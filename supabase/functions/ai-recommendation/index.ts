@@ -7,14 +7,136 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// ─── Lifestyle Score Computation ───
+function computeLifestyleScore(userA: any, userB: any): number {
+  if (!userA || !userB) return 50 // neutral default
+
+  const categories = ['Drinking', 'Smoking', 'Workout', 'Communication Style', 'Love Language', 'Family Plans', 'Pets']
+  let totalScore = 0
+  let compared = 0
+
+  for (const cat of categories) {
+    const a = userA[cat]
+    const b = userB[cat]
+    if (!a || !b) continue
+    compared++
+
+    if (a === b) {
+      totalScore += 1.0
+    } else if (cat === 'Drinking' || cat === 'Smoking') {
+      // Partial match for adjacent lifestyle choices
+      const drinkOrder = ['Non-drinker', 'Socially', 'Reviewer']
+      const smokeOrder = ['Non-smoker', 'Trying to quit', 'Electronic Cigarette', 'Smoker']
+      const order = cat === 'Drinking' ? drinkOrder : smokeOrder
+      const iA = order.indexOf(a)
+      const iB = order.indexOf(b)
+      if (iA >= 0 && iB >= 0) {
+        const diff = Math.abs(iA - iB)
+        totalScore += diff === 1 ? 0.5 : 0.2
+      } else {
+        totalScore += 0.3
+      }
+    } else if (cat === 'Workout') {
+      const workoutOrder = ['Everyday', 'Often', 'Sometimes', 'Never']
+      const iA = workoutOrder.indexOf(a)
+      const iB = workoutOrder.indexOf(b)
+      if (iA >= 0 && iB >= 0) {
+        const diff = Math.abs(iA - iB)
+        totalScore += diff <= 1 ? 0.7 : 0.3
+      } else {
+        totalScore += 0.3
+      }
+    } else {
+      totalScore += 0.3
+    }
+  }
+
+  return compared > 0 ? (totalScore / compared) * 100 : 50
+}
+
+// ─── QA Values Score Computation ───
+function computeValuesScore(answersA: any[], answersB: any[]): number {
+  if (!answersA?.length || !answersB?.length) return 50
+
+  let totalScore = 0
+  let compared = 0
+
+  for (const ansA of answersA) {
+    const ansB = answersB.find((b: any) => b.question === ansA.question)
+    if (!ansB) continue
+    compared++
+
+    if (ansA.answer === ansB.answer) {
+      totalScore += 1.0
+    } else {
+      // Check for adjacent answers (same question, nearby option)
+      totalScore += 0.4
+    }
+  }
+
+  return compared > 0 ? (totalScore / compared) * 100 : 50
+}
+
+// ─── Confidence Tier ───
+function getConfidenceTier(cms: number): string {
+  if (cms >= 85) return 'Excellent'
+  if (cms >= 70) return 'Great'
+  if (cms >= 55) return 'Good'
+  return 'Fair'
+}
+
+// ─── Top Dimensions Extractor ───
+function getTopDimensions(rubric: any): string[] {
+  if (!rubric) return []
+  const dims = [
+    { name: 'Emotional Safety', value: rubric.emotional_safety_intimacy, max: 20 },
+    { name: 'Core Energy Alignment', value: rubric.core_needs_energy, max: 25 },
+    { name: 'Communication & Conflict', value: rubric.communication_conflict, max: 15 },
+    { name: 'Lifestyle Execution', value: rubric.lifestyle_execution, max: 15 },
+    { name: 'Values & Meaning', value: rubric.values_meaning, max: 10 },
+    { name: 'Growth & Repair', value: rubric.growth_repair, max: 8 },
+    { name: 'Stress Support', value: rubric.stress_support, max: 5 },
+  ]
+
+  // Sort by percentage of max score (highest first)
+  dims.sort((a, b) => (b.value / b.max) - (a.value / a.max))
+
+  // Return top 3 as readable strings
+  return dims.slice(0, 3).map(d => {
+    const pct = Math.round((d.value / d.max) * 100)
+    const label = pct >= 90 ? 'Very High' : pct >= 75 ? 'High' : pct >= 60 ? 'Moderate' : 'Low'
+    return `${d.name}: ${label}`
+  })
+}
+
+// ─── Distance Calculation ───
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 9999
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { query, userId } = await req.json()
+    // Manual auth check (gateway verify_jwt disabled due to ES256 incompatibility)
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      })
+    }
 
+    const { query, userId } = await req.json()
     if (!query || !userId) {
       throw new Error('Query and userId are required')
     }
@@ -24,7 +146,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 1. Get current user's profile
+    // ──────────────────────────────────────────────
+    // 1. Fetch current user's profile + traits
+    // ──────────────────────────────────────────────
     const { data: currentUser, error: userError } = await supabaseClient
       .from('profiles')
       .select('*')
@@ -33,25 +157,31 @@ serve(async (req) => {
 
     if (userError || !currentUser) throw new Error('User not found: ' + JSON.stringify(userError))
 
-    // 2. Get current user's MBTI and preferences from user_traits
     const { data: currentTraitRows } = await supabaseClient
       .from('user_traits')
-      .select('mbti, matching_preferences')
+      .select('mbti, matching_preferences, lifestyle, answers')
       .eq('user_id', userId)
       .limit(1)
 
-    const currentMbti = currentTraitRows && currentTraitRows.length > 0 ? currentTraitRows[0].mbti : null
-    const prefs = currentTraitRows && currentTraitRows.length > 0 ? currentTraitRows[0].matching_preferences : null
-    
-    // Default preferences if not found
-    const preferredGender = prefs?.preferredGender ?? 'Any'
-    const prioritizeActive = prefs?.prioritizeActiveUsers ?? false
-    let maxDistance = prefs?.maxDistance ?? 50
-    let maxAge = prefs?.maxAge ?? 100
-    
-    console.log('currentMbti:', currentMbti, 'preferredGender:', preferredGender, 'maxDistance:', maxDistance, 'maxAge:', maxAge, 'prioritizeActive:', prioritizeActive)
+    const currentTrait = currentTraitRows?.[0] ?? {}
+    const currentMbti = currentTrait.mbti ?? null
+    const prefs = currentTrait.matching_preferences ?? {}
+    const currentLifestyle = currentTrait.lifestyle ?? {}
+    const currentAnswers = currentTrait.answers ?? []
 
-    // 3. Fetch all other users' profiles (excluding admin role, only approved)
+    // Matching preferences (hard filters)
+    const preferredGender = prefs?.preferred_gender ?? prefs?.preferredGender ?? 'Any'
+    const prioritizeActive = prefs?.prioritize_active ?? prefs?.prioritizeActiveUsers ?? false
+    let maxDistance = prefs?.max_distance ?? prefs?.maxDistance ?? 50
+    let maxAge = prefs?.max_age ?? prefs?.maxAge ?? 100
+    const filterSmoking = prefs?.filter_smoking ?? []
+    const filterDrinking = prefs?.filter_drinking ?? []
+
+    console.log('User MBTI:', currentMbti, '| Prefs:', preferredGender, maxDistance, maxAge)
+
+    // ──────────────────────────────────────────────
+    // 2. Fetch all candidate profiles
+    // ──────────────────────────────────────────────
     const { data: candidateProfiles, error: candidatesError } = await supabaseClient
       .from('profiles')
       .select('*')
@@ -61,7 +191,19 @@ serve(async (req) => {
 
     if (candidatesError || !candidateProfiles) throw new Error('Failed to fetch candidates')
 
-    // 3.5 Fetch current user interactions to filter out ones already liked, or passed within 24h
+    // ──────────────────────────────────────────────
+    // 3. Apply hard filters
+    // ──────────────────────────────────────────────
+    const queryLower = query.toLowerCase()
+    const isAnyoneQuery = queryLower.includes('anyone') || queryLower.includes('any') ||
+      queryLower.includes('아무나') || queryLower.includes('상관없어') ||
+      queryLower.includes('all') || queryLower.includes('누구나')
+
+    let effGender = isAnyoneQuery ? 'Any' : preferredGender
+    let effDistance = isAnyoneQuery ? 9999 : maxDistance
+    let effAge = isAnyoneQuery ? 100 : maxAge
+
+    // Fetch interactions to exclude
     const { data: interactions } = await supabaseClient
       .from('user_interactions')
       .select('to_user, action, created_at')
@@ -69,167 +211,268 @@ serve(async (req) => {
 
     const excludedIds = new Set<string>()
     if (interactions) {
-      const now = new Date().getTime()
+      const now = Date.now()
       const hours24 = 24 * 60 * 60 * 1000
       interactions.forEach((inter: any) => {
         if (inter.action === 'like' || inter.action === 'super_like') {
           excludedIds.add(inter.to_user)
         } else if (inter.action === 'pass') {
-          const passTime = new Date(inter.created_at).getTime()
-          if (now - passTime < hours24) {
+          if (now - new Date(inter.created_at).getTime() < hours24) {
             excludedIds.add(inter.to_user)
           }
         }
       })
     }
 
-    // Add distance calculation helper
-    function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-      if (!lat1 || !lon1 || !lat2 || !lon2) return 9999;
-      const R = 6371; // km
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2); 
-      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-    }
-
-    const unblockedCandidates = candidateProfiles.filter((c: any) => !excludedIds.has(c.id))
-
-    // Fallback Logic Arrays
-    let strictCandidates: any[] = []
-    let relaxedCandidates: any[] = []
-
     const currentYear = new Date().getFullYear()
     const currentLat = currentUser.latitude
     const currentLon = currentUser.longitude
 
+    let strictCandidates: any[] = []
+    let relaxedCandidates: any[] = []
+
+    const unblockedCandidates = candidateProfiles.filter((c: any) => !excludedIds.has(c.id))
+
     unblockedCandidates.forEach((c: any) => {
-      // Base Filters: Gender
-      let genderMatch = true
-      if (preferredGender !== 'Any' && c.gender && c.gender.toLowerCase() !== preferredGender.toLowerCase()) {
-        genderMatch = false
-      }
+      // Gender filter
+      if (effGender !== 'Any' && c.gender && c.gender.toLowerCase() !== effGender.toLowerCase()) return
 
-      // Base Filters: Active Status
-      let activeMatch = true
-      if (prioritizeActive && c.last_active_at) {
-        const lastActive = new Date(c.last_active_at).getTime()
-        const daysSinceActive = (new Date().getTime() - lastActive) / (1000 * 3600 * 24)
-        if (daysSinceActive > 3) activeMatch = false // 3 days cutoff
-      } else if (prioritizeActive && !c.last_active_at) {
-         activeMatch = false
+      // Active filter
+      if (prioritizeActive) {
+        if (!c.last_active_at) return
+        const daysSince = (Date.now() - new Date(c.last_active_at).getTime()) / (1000 * 3600 * 24)
+        if (daysSince > 3) return
       }
-
-      if (!genderMatch || !activeMatch) return; // Drop completely if gender or active priority fails
 
       const age = c.birth_date ? currentYear - new Date(c.birth_date).getFullYear() : 99
       const distance = calculateDistance(currentLat, currentLon, c.latitude, c.longitude)
 
-      // Strict check
-      const ageMatch = age <= maxAge
-      const distMatch = distance <= maxDistance
-
-      if (ageMatch && distMatch) {
-         strictCandidates.push(c)
-      } else if (age <= (maxAge + 10)) {
-         // Relaxed check: Allow +10 years and completely ignore distance
-         relaxedCandidates.push(c)
+      if (age <= effAge && distance <= effDistance) {
+        strictCandidates.push(c)
+      } else if (age <= (effAge + 10)) {
+        relaxedCandidates.push(c)
       }
     })
 
     let matchedByPreference = true
     let filteredCandidates = strictCandidates
-    
+
     if (strictCandidates.length < 4) {
       matchedByPreference = false
-      // Combine strict and relaxed, remove duplicates
       const comb = [...strictCandidates, ...relaxedCandidates]
       const uniqueIds = new Set()
       filteredCandidates = comb.filter(c => {
-         if (uniqueIds.has(c.id)) return false
-         uniqueIds.add(c.id)
-         return true
+        if (uniqueIds.has(c.id)) return false
+        uniqueIds.add(c.id)
+        return true
       })
     }
 
-    // 4. Fetch traits for all chosen candidates
     const candidateIds = filteredCandidates.map((c: any) => c.id)
     if (candidateIds.length === 0) {
-      throw new Error('No potential candidates available to match (You are the only user).')
+      throw new Error('No potential candidates available to match.')
     }
 
+    // ──────────────────────────────────────────────
+    // 4. Fetch traits for all candidates
+    // ──────────────────────────────────────────────
     const { data: allTraits } = await supabaseClient
       .from('user_traits')
-      .select('user_id, mbti')
+      .select('user_id, mbti, lifestyle, answers')
       .in('user_id', candidateIds)
 
-    // 5. Fetch ALL MBTI Compatibilities (no filter - we'll match in code)
-    const { data: compatibilities, error: compatError } = await supabaseClient
-      .from('mbti_compatibility')
-      .select('*')
+    // ──────────────────────────────────────────────
+    // 5. Fetch MBTI compatibility data from v2 table
+    // ──────────────────────────────────────────────
+    // Build all pair lookup keys we need
+    const lookupKeys: string[] = []
+    if (currentMbti) {
+      for (const c of filteredCandidates) {
+        const cTrait = allTraits?.find((t: any) => t.user_id === c.id)
+        const cMbti = cTrait?.mbti
+        if (cMbti) {
+          lookupKeys.push(`${currentMbti}_${cMbti}`)
+        }
+      }
+    }
 
-    if (compatError) throw new Error('Failed to fetch compatibilities')
+    // Fetch pair keys from lookup table
+    let pairKeyMap: Record<string, string> = {}
+    if (lookupKeys.length > 0) {
+      const { data: lookups } = await supabaseClient
+        .from('mbti_pair_lookup')
+        .select('lookup_key, pair_key')
+        .in('lookup_key', lookupKeys)
 
-    console.log('compatibilities count:', compatibilities?.length)
+      if (lookups) {
+        lookups.forEach((l: any) => { pairKeyMap[l.lookup_key] = l.pair_key })
+      }
+    }
 
+    // Fetch actual compatibility records
+    const uniquePairKeys = [...new Set(Object.values(pairKeyMap))]
+    let compatMap: Record<string, any> = {}
+    if (uniquePairKeys.length > 0) {
+      const { data: compats } = await supabaseClient
+        .from('mbti_compatibility_v2')
+        .select('*')
+        .in('pair_key', uniquePairKeys)
+
+      if (compats) {
+        compats.forEach((c: any) => { compatMap[c.pair_key] = c })
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // 6. Compute Composite Match Score (CMS) for each candidate
+    // ──────────────────────────────────────────────
+    const scoredCandidates = filteredCandidates.map((c: any) => {
+      const cTrait = allTraits?.find((t: any) => t.user_id === c.id)
+      const cMbti = cTrait?.mbti ?? null
+      const cLifestyle = cTrait?.lifestyle ?? {}
+      const cAnswers = cTrait?.answers ?? []
+
+      // MBTI Score (40%)
+      let mbtiScore = 50 // default if no MBTI data
+      let mbtiCompat: any = null
+      if (currentMbti && cMbti) {
+        const lookupKey = `${currentMbti}_${cMbti}`
+        const pairKey = pairKeyMap[lookupKey]
+        if (pairKey) {
+          mbtiCompat = compatMap[pairKey]
+          if (mbtiCompat) {
+            mbtiScore = mbtiCompat.score
+          }
+        }
+      }
+
+      // Lifestyle Score (25%)
+      const lifestyleScore = computeLifestyleScore(currentLifestyle, cLifestyle)
+
+      // Values Score (20%)
+      const valuesScore = computeValuesScore(
+        Array.isArray(currentAnswers) ? currentAnswers : [],
+        Array.isArray(cAnswers) ? cAnswers : []
+      )
+
+      // Profile Affinity (15%) — base score from occupation similarity
+      let profileAffinity = 50
+      if (currentUser.occupation && c.occupation && currentUser.occupation === c.occupation) {
+        profileAffinity = 90
+      } else if (currentUser.occupation && c.occupation) {
+        // Check if similar professional domains
+        const techJobs = ['Developer', 'Software Engineer', 'Programmer', 'Data Analyst', 'Data Scientist', 'UX Designer', 'Designer']
+        const healthJobs = ['Doctor', 'Nurse', 'Dentist', 'Pharmacist', 'Veterinarian', 'Surgeon', 'Nutritionist', 'Paramedic']
+        const creativeJobs = ['Artist', 'Musician', 'Photographer', 'Videographer', 'Writer', 'Editor', 'Producer', 'Content Creator', 'Illustrator', 'Graphic Designer']
+        const businessJobs = ['Consultant', 'Financial Advisor', 'Marketer', 'Sales Manager', 'Business Analyst', 'Project Manager', 'Real Estate Agent', 'Accountant', 'Banker']
+
+        const domains = [techJobs, healthJobs, creativeJobs, businessJobs]
+        for (const domain of domains) {
+          if (domain.includes(currentUser.occupation) && domain.includes(c.occupation)) {
+            profileAffinity = 75
+            break
+          }
+        }
+      }
+
+      // Composite Match Score
+      const cms = (mbtiScore * 0.40) + (lifestyleScore * 0.25) + (valuesScore * 0.20) + (profileAffinity * 0.15)
+
+      return {
+        profile: c,
+        trait: cTrait,
+        mbtiCompat,
+        scores: {
+          mbti: Math.round(mbtiScore * 10) / 10,
+          lifestyle: Math.round(lifestyleScore * 10) / 10,
+          values: Math.round(valuesScore * 10) / 10,
+          profileAffinity: Math.round(profileAffinity * 10) / 10,
+          composite: Math.round(cms * 10) / 10,
+        },
+        topDimensions: getTopDimensions(mbtiCompat),
+        confidenceTier: getConfidenceTier(cms),
+      }
+    })
+
+    // Sort by CMS descending
+    scoredCandidates.sort((a, b) => b.scores.composite - a.scores.composite)
+
+    console.log('Scored candidates:', scoredCandidates.map(sc => `${sc.profile.nickname}: CMS=${sc.scores.composite}`))
+
+    // ──────────────────────────────────────────────
+    // 7. Build AI Prompt with rich rubric context
+    // ──────────────────────────────────────────────
     const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     })
 
-    // Build context prompt with properly merged data
-    const candidatesContext = filteredCandidates.map((c: any) => {
-      const trait = allTraits?.find((t: any) => t.user_id === c.id)
-      const candidateMbti = trait?.mbti ?? null
+    const candidatesContext = scoredCandidates.slice(0, 20).map((sc) => {
+      const c = sc.profile
+      const age = c.birth_date ? currentYear - new Date(c.birth_date).getFullYear() : 'Unknown'
+      const cMbti = sc.trait?.mbti ?? 'Unknown'
 
-      let compat = { score: 50, reason: '알려지지 않은 궁합입니다.' }
-      if (currentMbti && candidateMbti && compatibilities) {
-        const found = compatibilities.find((cmp: any) =>
-          (cmp.mbti1 === currentMbti && cmp.mbti2 === candidateMbti) ||
-          (cmp.mbti2 === currentMbti && cmp.mbti1 === candidateMbti)
-        )
-        if (found) compat = found
+      let mbtiContext = ''
+      if (sc.mbtiCompat) {
+        mbtiContext = `
+MBTI Compatibility Detail:
+  Overall Score: ${sc.mbtiCompat.score}/100 (${sc.mbtiCompat.confidence} confidence)
+  Emotional Safety: ${sc.mbtiCompat.emotional_safety_intimacy}/20
+  Communication & Conflict: ${sc.mbtiCompat.communication_conflict}/15
+  Values & Meaning: ${sc.mbtiCompat.values_meaning}/10
+  Why it works: ${JSON.stringify(sc.mbtiCompat.why_it_works)}
+  Watch-outs: ${JSON.stringify(sc.mbtiCompat.watch_outs)}
+  Success conditions: ${JSON.stringify(sc.mbtiCompat.success_conditions)}`
       }
 
-      console.log(`Candidate ${c.nickname}: MBTI=${candidateMbti}, compat score=${compat.score}`)
+      return `
+─── Candidate ID: ${c.id} ───
+Name: ${c.nickname || 'Unknown'}, Age: ${age}, MBTI: ${cMbti}
+Job: ${c.occupation || 'Unknown'}, Height: ${c.height || 'Unknown'}cm
+Self-intro: ${c.self_intro || 'N/A'}
+One-line intro: ${c.one_line_intro || 'N/A'}
+Lifestyle: Drinking=${sc.trait?.lifestyle?.Drinking || 'N/A'}, Smoking=${sc.trait?.lifestyle?.Smoking || 'N/A'}, Workout=${sc.trait?.lifestyle?.Workout || 'N/A'}
+Composite Match Score: ${sc.scores.composite}/100 (MBTI: ${sc.scores.mbti}, Lifestyle: ${sc.scores.lifestyle}, Values: ${sc.scores.values}, Profile: ${sc.scores.profileAffinity})
+Confidence Tier: ${sc.confidenceTier}
+${mbtiContext}`
+    }).join('\n')
 
-      const age = c.birth_date
-        ? new Date().getFullYear() - new Date(c.birth_date).getFullYear()
-        : 'Unknown'
+    const currentAge = currentUser.birth_date ? currentYear - new Date(currentUser.birth_date).getFullYear() : 'Unknown'
 
-      return `Candidate ID: ${c.id}
-Name: ${c.nickname || 'Unknown'}
-Age: ${age}
-MBTI: ${candidateMbti || 'Unknown'}
-Job: ${c.occupation || 'Unknown'}
-Height: ${c.height || 'Unknown'}
-Drinking: ${c.drinking || 'Unknown'}
-Smoking: ${c.smoking || 'Unknown'}
-MBTI Compatibility Score with Current User (${currentMbti}): ${compat.score} -> ${compat.reason}`
-    }).join('\n\n')
+    const systemPrompt = `You are an AI dating matchmaker for the BeTogether app. Your role is to analyze personality compatibility deeply and provide insightful, empathetic recommendations.
 
-    const systemPrompt = `You are an AI dating app matchmaker. The current user is asking: "${query}".
-The current user's info: MBTI is ${currentMbti}, Age is ${new Date().getFullYear() - new Date(currentUser.birth_date).getFullYear()}, Job is ${currentUser.occupation}.
+CURRENT USER:
+- MBTI: ${currentMbti || 'Unknown'}
+- Age: ${currentAge}
+- Job: ${currentUser.occupation || 'Unknown'}
+- Self-intro: ${currentUser.self_intro || 'N/A'}
+- One-line intro: ${currentUser.one_line_intro || 'N/A'}
 
-Here is a list of potential candidates:
+USER QUERY: "${query}"
+
+CANDIDATES (sorted by Composite Match Score):
 ${candidatesContext}
 
-Based ONLY on the user's query and the candidates provided, find up to 4 of the best matching candidates (if the user asks for "anyone" or "all", provide up to 4 diverse matching candidates).
-You MUST choose exact Candidate IDs from the list above. Do not invent an ID or use "Unknown". If no one fits, return an empty array.
-You must return the response in strict JSON format matching exactly this structure:
+INSTRUCTIONS:
+1. Select up to 4 best candidates. If the user says "anyone" / "all" / has no specific preference, choose the top 4 by Composite Match Score.
+2. For each recommendation, generate 4 insightful reasons in ENGLISH:
+   - reason1: An emotional connection insight. Reference the MBTI compatibility's emotional safety or why_it_works data. Example: "You both share high emotional safety, which means deeper conversations will feel natural and secure."
+   - reason2: A daily life compatibility insight. Reference lifestyle alignment, dating style, or communication preferences. Example: "Both of you prefer structured planning, making daily routines and future goals easier to coordinate."
+   - reason3: A unique bridge insight. Find something specific connecting these two people — similar professional fields, shared interests inferred from self-intro, or complementary personality traits. Use the candidate's self_intro and occupation. Example: "As fellow creative professionals, you'll understand each other's workflow and find inspiration in each other's perspectives."
+   - reason4: A confidence summary. Include the tier and key insight. Example: "An Excellent Match — your strong values alignment and compatible conflict resolution styles suggest a naturally harmonious connection."
+3. IMPORTANT: Use the Watch-outs and Success Conditions to add nuance — don't just say everything is perfect. Mention areas to be mindful of in a positive way.
+4. You MUST choose exact Candidate IDs from the list. Do not invent IDs.
+5. Return ONLY valid JSON:
 {
   "recommendations": [
     {
-      "recommendedUserId": "uuid of the chosen candidate",
-      "reason1": "Short explanation about their MBTI compatibility score and detail.",
-      "reason2": "Short explanation about their Age or other basic match regarding the query.",
-      "reason3": "Short explanation about a specific trait (e.g., non-smoker, job) that matches the query.",
-      "reason4": "1-2 sentences summarizing the final recommendation."
+      "recommendedUserId": "uuid",
+      "reason1": "...",
+      "reason2": "...",
+      "reason3": "...",
+      "reason4": "..."
     }
   ]
-}
-Do not include any other text besides the JSON object.`
+}`
 
     const chatCompletion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -252,19 +495,38 @@ Do not include any other text besides the JSON object.`
       throw new Error('AI found no matching candidates for the given query.')
     }
 
+    // ──────────────────────────────────────────────
+    // 8. Build final enriched response
+    // ──────────────────────────────────────────────
     const finalCandidates = aiResponse.recommendations.map((rec: any) => {
-      const bestCandidate = candidateProfiles.find((c: any) => c.id === rec.recommendedUserId)
-      if (!bestCandidate) {
-        console.warn('AI recommended unknown ID: ' + rec.recommendedUserId)
+      const scored = scoredCandidates.find((sc) => sc.profile.id === rec.recommendedUserId)
+      if (!scored) {
+        console.warn('AI recommended unknown ID:', rec.recommendedUserId)
         return null
       }
+
+      const c = scored.profile
+      const distance = calculateDistance(currentLat, currentLon, c.latitude, c.longitude)
+
+      const enrichedCandidate = {
+        ...c,
+        mbti: scored.trait?.mbti ?? null,
+        lifestyle: scored.trait?.lifestyle ?? {},
+        answers: scored.trait?.answers ?? {},
+      }
+
       return {
-        candidate: bestCandidate,
+        candidate: enrichedCandidate,
+        distance: Math.round(distance),
+        confidenceTier: scored.confidenceTier,
+        compositeScore: scored.scores.composite,
+        topDimensions: scored.topDimensions,
+        scores: scored.scores,
         reasons: {
-          step1: rec.reason1 || "Matched successfully.",
-          step2: rec.reason2 || "Good compatibilities.",
-          step3: rec.reason3 || "Traits align well.",
-          step4: rec.reason4 || "Recommended by AI matchmaker.",
+          step1: rec.reason1 || 'Matched successfully.',
+          step2: rec.reason2 || 'Good compatibilities.',
+          step3: rec.reason3 || 'Traits align well.',
+          step4: rec.reason4 || 'Recommended by AI matchmaker.',
         }
       }
     }).filter(Boolean)
@@ -273,15 +535,15 @@ Do not include any other text besides the JSON object.`
       throw new Error('AI recommended an unknown user ID: ' + JSON.stringify(aiResponse))
     }
 
-    const finalResponse = {
+    return new Response(JSON.stringify({
       candidates: finalCandidates,
       matchedByPreference: matchedByPreference
-    }
-
-    return new Response(JSON.stringify(finalResponse), {
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+
   } catch (error: any) {
+    console.error('Edge function error:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

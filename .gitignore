@@ -37,3 +37,6 @@ build_log.txt
 test*.swift
 sql_test.swift
 *.js
+
+# MBTI Algorithm Source (confidential - never push to remote)
+MBTI compatibility algorithm/

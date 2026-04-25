@@ -77,7 +77,8 @@ AI 기반 유저 매칭 추천 기능. 유저가 원하는 상대방을 자연�
 - `user_photos`: 본인 관리, 관리자 전체, `is_verified=true`면 공개
 - `user_traits`: 본인만 읽기/수정
 - `blocked_contacts`: 본인만 관리
-- `mbti_compatibility`: 전체 읽기 (공개)
+- `mbti_compatibility_v2`: 서비스 역할 전용 (public/anon 접근 불가 — Phase 16에서 교체)
+- `mbti_pair_lookup`: 서비스 역할 전용 (public/anon 접근 불가 — Phase 16에서 신규 생성)
 
 #### 향후 개선 사항
 - Rate Limiting: 유저당 하루 AI 추천 요청 횟수 제한 (OpenAI 비용 통제)
@@ -341,6 +342,164 @@ Streamlined the complete onboarding flow and significantly remodeled how user pr
 
 ---
 
+### Phase 16 — AI Matchmaker Algorithm Overhaul (Multi-Dimensional Scoring Engine)
+
+기존 단순 MBTI 점수 조회 방식에서 **다차원 성격·라이프스타일·가치관 기반 복합 매칭 엔진**으로 전면 개편. 136개 MBTI 쌍별 7차원 루브릭 데이터를 활용하여 정확성과 추천 근거의 깊이를 대폭 강화.
+
+#### 구성 요소
+
+**1. Database — MBTI Compatibility V2 마이그레이션**
+
+| 작업 | 상세 |
+|------|------|
+| 삭제 | `mbti_compatibility` (기존 빈 테이블) |
+| 신규 | `mbti_compatibility_v2` — 136개 MBTI 쌍 레코드, 7차원 루브릭 점수 |
+| 신규 | `mbti_pair_lookup` — 256개 양방향 조회 엔트리 |
+| RLS | 두 테이블 모두 `service_role` 전용 (public/anon 접근 완전 차단) |
+
+**7차원 루브릭 (Rubric Dimensions):**
+
+| 차원 | 최대 점수 | 설명 |
+|------|-----------|------|
+| Core Needs & Energy | 25 | 에너지 방향성 및 핵심 욕구 정렬 |
+| Emotional Safety & Intimacy | 20 | 감정적 안전감 및 친밀감 기반 |
+| Communication & Conflict | 15 | 소통 방식 및 갈등 해결 스타일 |
+| Lifestyle Execution | 15 | 일상 생활 방식 실행력 |
+| Values & Meaning | 10 | 가치관 및 의미 추구 정렬 |
+| Growth & Repair | 8 | 성장 지향 및 관계 복원력 |
+| Stress Support | 5 | 스트레스 상황에서의 상호 지지 |
+
+각 레코드에는 `summary`, `why_it_works[]`, `watch_outs[]`, `success_conditions[]`, `flags[]` 등 GPT 컨텍스트용 자연어 데이터 포함.
+
+**양방향 조회 (Bidirectional Lookup):**
+- `mbti_pair_lookup` 테이블은 `INTJ_ENFP` → `pair_key`, `ENFP_INTJ` → 동일한 `pair_key`로 매핑하여, MBTI 순서와 무관하게 O(1) 조회 보장.
+
+---
+
+**2. Edge Function — `ai-recommendation` 전면 재작성**
+
+기존 단순 MBTI 점수 참조 로직에서 **4차원 복합 매칭 점수(CMS) 엔진**으로 완전 교체.
+
+**Composite Match Score (CMS) 공식:**
+```
+CMS = (MBTI × 0.40) + (Lifestyle × 0.25) + (Values × 0.20) + (Profile Affinity × 0.15)
+```
+
+| 차원 | 가중치 | 계산 방식 |
+|------|--------|----------|
+| MBTI Score | 40% | `mbti_compatibility_v2.score` (0~100) 직접 참조 |
+| Lifestyle Score | 25% | 7개 라이프스타일 카테고리 비교 (Drinking, Smoking, Workout, Communication Style, Love Language, Family Plans, Pets). 정확 일치=1.0, 인접 선택=0.5~0.7, 불일치=0.2~0.3 |
+| Values Score | 20% | 온보딩 QA 답변 비교. 같은 질문에 같은 답변=1.0, 다른 답변=0.4 |
+| Profile Affinity | 15% | 직업 도메인 클러스터 매칭 (Tech, Health, Creative, Business). 동일 직업=90, 같은 도메인=75, 기타=50 |
+
+**Confidence Tier 분류:**
+
+| CMS 범위 | 티어 | 별표 |
+|----------|------|------|
+| 85~100 | Excellent | ★★★ |
+| 70~84 | Great | ★★ |
+| 55~69 | Good | ★ |
+| 0~54 | Fair | — |
+
+**GPT 프롬프트 개선:**
+- 각 후보의 MBTI 루브릭 상세 (Emotional Safety 점수, Why It Works, Watch-outs, Success Conditions) 를 프롬프트에 직접 주입.
+- 4가지 인사이트 기반 추천 이유 생성 (모든 이유는 **영어**로 출력):
+  1. **Emotional Connection**: 감정적 안전감 및 why_it_works 기반
+  2. **Daily Life Compatibility**: 라이프스타일 정렬, 연애 스타일, 소통 방식 기반
+  3. **Unique Bridge**: 직업·자기소개에서 추출한 고유 연결점
+  4. **Confidence Summary**: 티어 + 핵심 인사이트 요약
+- Watch-outs와 Success Conditions를 활용하여 균형 잡힌 뉘앙스 생성 (단순 긍정 일변도 방지).
+
+**API 응답 구조 변경:**
+```json
+{
+  "candidates": [
+    {
+      "candidate": { /* 기존 프로필 + mbti, lifestyle, answers 인리치 */ },
+      "distance": 15,
+      "confidenceTier": "Great",
+      "compositeScore": 81.9,
+      "topDimensions": ["Emotional Safety: Very High", "Values & Meaning: High"],
+      "scores": {
+        "mbti": 93.1,
+        "lifestyle": 65.0,
+        "values": 66.7,
+        "profileAffinity": 50.0,
+        "composite": 81.9
+      },
+      "reasons": {
+        "step1": "You both share high emotional safety...",
+        "step2": "Both of you prefer structured planning...",
+        "step3": "As fellow creative professionals...",
+        "step4": "An Excellent Match — your strong values alignment..."
+      }
+    }
+  ],
+  "matchedByPreference": true
+}
+```
+
+---
+
+**3. iOS — `User.swift` 모델 확장**
+- `confidenceTier: String?` — "Excellent", "Great", "Good", "Fair"
+- `compositeScore: Double?` — CMS 점수 (0~100)
+- `topDimensions: [String]?` — 상위 호환 차원 (예: "Emotional Safety: Very High")
+
+---
+
+**4. iOS — `AiChatInterfaceView.swift` 디코더 업데이트**
+- `CandidateContainer` 구조체에 `confidenceTier`, `compositeScore`, `topDimensions` 필드 추가.
+- **`FlexibleAnswers` 커스텀 디코더 도입**: `answers` 필드가 딕셔너리(`{key: value}`)로 올 때와 배열(`[{question, answer, category}]`)로 올 때 모두 처리 가능. SQL 시드 유저와 앱 온보딩 유저의 데이터 형식 차이를 자동 정규화.
+- 디코딩된 데이터를 `User` 모델의 `personalQA`, `confidenceTier`, `compositeScore`, `topDimensions`에 매핑.
+
+---
+
+**5. iOS — `AiRevealEffectView.swift` UI 강화**
+
+- **블러 해제 오버레이 (Fog Reveal):**
+  - "AI Matchmaker" 라벨 옆에 Confidence Tier 뱃지 표시 (★★★ Excellent / ★★ Great / ★ Good)
+  - 티어별 동적 헤드라인: "An exceptional match found!" / "A wonderful match for you!" / "A promising match found!"
+
+- **"Why this match?" 필 버튼:**
+  - 버튼에 티어 별표 추가 표시
+
+- **ReasonsSheetView (추천 이유 시트) 전면 개편:**
+  - 한국어 라벨 → 영어로 전환 ("MBTI 궁합" → "Emotional Connection" 등)
+  - 상단에 Confidence Tier 뱃지 + Composite Score 표시
+  - **Top Compatibility Areas** 섹션 추가: `topDimensions` 배열을 체크마크 리스트로 렌더링
+  - 4개 이유 카드: Emotional Connection (💜), Daily Life Compatibility (💙), Unique Bridge (💚), Match Summary (🩵)
+
+---
+
+**6. 기타 정리**
+- `test-data-generator/` 폴더 삭제 (더 이상 불필요)
+- 임시 SQL 시드 파일 정리
+
+#### 보안 구조
+
+| 항목 | 보안 수준 |
+|------|----------|
+| `mbti_compatibility_v2` | RLS 활성화, 정책 없음 = `service_role` 전용. anon key로 0행 반환 확인됨 |
+| `mbti_pair_lookup` | RLS 활성화, 정책 없음 = `service_role` 전용 |
+| Edge Function | `SUPABASE_SERVICE_ROLE_KEY`로만 호환성 데이터 조회. 클라이언트에 원시 점수/루브릭 절대 노출 안 함 |
+| AI 응답 | 자연어 추천 이유만 반환. 내부 알고리즘 메트릭스 및 루브릭 데이터는 서버에서만 사용 |
+| 알고리즘 소스 | `MBTI_Compatibility_136_Merged_v2.json` — 프로젝트 내부 전용, 절대 유출 금지 |
+
+#### 변경 파일 목록
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `User.swift` | [MODIFY] `confidenceTier`, `compositeScore`, `topDimensions` 필드 추가 |
+| `AiChatInterfaceView.swift` | [MODIFY] FlexibleAnswers 디코더, 새 응답 필드 매핑 |
+| `AiRevealEffectView.swift` | [MODIFY] Confidence tier 뱃지, 동적 헤드라인, 영어 라벨, Top Dimensions |
+| `ai-recommendation/index.ts` | [REWRITE] CMS 엔진, 라이프스타일/가치관/프로필 점수, 루브릭 기반 GPT 프롬프트 |
+| `mbti_compatibility_v2` | [NEW TABLE] 136개 MBTI 쌍 호환성 레코드 |
+| `mbti_pair_lookup` | [NEW TABLE] 256개 양방향 조회 엔트리 |
+| `mbti_compatibility` | [DELETED TABLE] 기존 빈 테이블 삭제 |
+| `test-data-generator/` | [DELETED] 불필요한 테스트 데이터 생성기 폴더 삭제 |
+
+---
 
 ## Future Features
 

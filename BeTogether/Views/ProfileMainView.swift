@@ -185,6 +185,7 @@ struct ProfileMainView: View {
     // MARK: - Profile Details
     private func profileDetailsSection(_ profile: ProfileData) -> some View {
         VStack(spacing: 0) {
+            ProfileDetailRow(icon: "phone.fill", title: "Phone", value: profile.phone ?? "Not set")
             ProfileDetailRow(icon: "tag", title: "Nickname (Private ID)", value: profile.nickname ?? "Not set")
             ProfileDetailRow(icon: "briefcase", title: "Occupation", value: profile.occupation ?? "Not set")
             ProfileDetailRow(icon: "ruler", title: "Height", value: profile.height ?? "Not set")
@@ -462,7 +463,7 @@ struct ProfileMainView: View {
                 
                 // Fetch profile
                 let profileResult: [ProfileData] = try await client.from("profiles")
-                    .select("id, full_name, nickname, birth_date, occupation, height, university, gender, one_line_intro, self_intro, status")
+                    .select("id, phone, full_name, nickname, birth_date, occupation, height, university, gender, one_line_intro, self_intro, status")
                     .eq("id", value: userId)
                     .setHeader(name: "Authorization", value: "Bearer \(token)")
                     .execute()
@@ -527,15 +528,17 @@ struct ProfileData: Decodable {
     var mbti: String?
     var age: Int?
     var status: String?
+    var phone: String?
     
     enum CodingKeys: String, CodingKey {
-        case id, full_name, nickname, birth_date, occupation, height, university
+        case id, phone, full_name, nickname, birth_date, occupation, height, university
         case gender, one_line_intro, self_intro, status
     }
     
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
+        phone = try c.decodeIfPresent(String.self, forKey: .phone)
         full_name = try c.decodeIfPresent(String.self, forKey: .full_name)
         nickname = try c.decodeIfPresent(String.self, forKey: .nickname)
         birth_date = try c.decodeIfPresent(String.self, forKey: .birth_date)

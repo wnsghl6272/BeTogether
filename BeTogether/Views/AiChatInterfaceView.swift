@@ -358,6 +358,40 @@ struct AiChatInterfaceView: View {
             struct CandidateContainer: Decodable {
                 let candidate: UserProfileResponse
                 let reasons: Reasons
+                let distance: Int?
+                let confidenceTier: String?
+                let compositeScore: Double?
+                let topDimensions: [String]?
+            }
+            // Flexible decoder: answers can be a dict OR an array of dicts
+            enum FlexibleAnswers: Decodable {
+                case dict([String: String])
+                case array([[String: String]])
+                
+                init(from decoder: Decoder) throws {
+                    let container = try decoder.singleValueContainer()
+                    if let dict = try? container.decode([String: String].self) {
+                        self = .dict(dict)
+                    } else if let arr = try? container.decode([[String: String]].self) {
+                        self = .array(arr)
+                    } else {
+                        self = .dict([:])
+                    }
+                }
+                
+                func toDictionary() -> [String: String] {
+                    switch self {
+                    case .dict(let d): return d
+                    case .array(let arr):
+                        var result: [String: String] = [:]
+                        for entry in arr {
+                            if let q = entry["question"], let a = entry["answer"] {
+                                result[q] = a
+                            }
+                        }
+                        return result
+                    }
+                }
             }
             struct UserProfileResponse: Decodable {
                 let id: String
@@ -367,6 +401,10 @@ struct AiChatInterfaceView: View {
                 let occupation: String?
                 let height: String?
                 let mbti: String?
+                let one_line_intro: String?
+                let self_intro: String?
+                let lifestyle: [String: String]?
+                let answers: FlexibleAnswers?
             }
             struct Reasons: Decodable {
                 let step1: String
@@ -396,39 +434,18 @@ struct AiChatInterfaceView: View {
                 let currentYear = Calendar.current.component(.year, from: Date())
                 let calculatedAge = currentYear - birthYear
 
-                // Fetch user traits (Lifestyle, QA)
-                struct QAItem: Decodable {
-                    let question: String
-                    let answer: String
-                }
-                struct TraitResult: Decodable {
-                    let lifestyle: [String: String]?
-                    let answers: [QAItem]?
-                    let mbti: String?
-                }
-                var userLifestyle: [String: String] = [:]
-                var userQA: [String: String] = [:]
-                var userMBTI: String = "N/A"
-                if let traitData: [TraitResult] = try? await AuthManager.shared.client.from("user_traits")
-                    .select("lifestyle, answers, mbti")
-                    .eq("user_id", value: item.candidate.id)
-                    .execute()
-                    .value, let firstTrait = traitData.first {
-                    userLifestyle = firstTrait.lifestyle ?? [:]
-                    if let fetchedAnswers = firstTrait.answers {
-                        for qa in fetchedAnswers {
-                            userQA[qa.question] = qa.answer
-                        }
-                    }
-                    userMBTI = firstTrait.mbti ?? "N/A"
-                }
+                // Use enriched data from the edge function response (no extra DB call needed)
+                let userMBTI = item.candidate.mbti ?? "N/A"
+                let userLifestyle = item.candidate.lifestyle ?? [:]
+                // Convert answers (handles both dict and array formats)
+                let userQA = item.candidate.answers?.toDictionary() ?? [:]
 
                 var newUser = User(
                     supabaseId: item.candidate.id,
                     name: item.candidate.full_name ?? item.candidate.nickname ?? "Unknown",
                     age: calculatedAge,
                     region: "Online",
-                    distance: 0,
+                    distance: item.distance ?? 0,
                     mbti: userMBTI,
                     isOnline: true,
                     isVerified: true,
@@ -438,12 +455,15 @@ struct AiChatInterfaceView: View {
                     university: "",
                     drinking: "",
                     smoking: "",
-                    oneLineIntro: "AI Match Selected",
-                    selfIntro: "Recommended by AI Matchmaker.",
+                    oneLineIntro: item.candidate.one_line_intro ?? "AI Match Selected",
+                    selfIntro: item.candidate.self_intro ?? "Recommended by AI Matchmaker.",
                     imageNames: allImageNames
                 )
                 newUser.lifestyle = userLifestyle
-                newUser.personalQA = userQA
+                newUser.personalQA = userQA.isEmpty ? nil : userQA
+                newUser.confidenceTier = item.confidenceTier
+                newUser.compositeScore = item.compositeScore
+                newUser.topDimensions = item.topDimensions
                 
                 newMatchedUsers.append(newUser)
                 newMatchReasonsArray.append([

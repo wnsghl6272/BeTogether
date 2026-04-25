@@ -276,9 +276,15 @@ struct PhotoUploadView: View {
             let existingPhotos = try await AuthManager.shared.fetchUserPhotos(userId: userId)
             
             for photo in existingPhotos {
-                if photo.sort_order >= 0 && photo.sort_order < 6, let url = URL(string: photo.image_url) {
+                if photo.sort_order >= 0 && photo.sort_order < 6 {
                     do {
-                        let (data, _) = try await URLSession.shared.data(from: url)
+                        guard let url = URL(string: photo.image_url) else { continue }
+                        var request = URLRequest(url: url)
+                        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+                        let config = URLSessionConfiguration.ephemeral
+                        let session = URLSession(configuration: config)
+                        
+                        let (data, _) = try await session.data(for: request)
                         if let image = UIImage(data: data) {
                             await MainActor.run {
                                 slots[photo.sort_order].image = image

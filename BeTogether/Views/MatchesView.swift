@@ -112,26 +112,28 @@ struct DailyPickCardView: View {
     var body: some View {
         ZStack {
             // Background Image
-            GeometryReader { geo in
+            Group {
                 if user.imageName.hasPrefix("http") {
                     SimulatorSafeAsyncImage(url: URL(string: user.imageName)) { image in
                         image
                             .resizable()
                             .scaledToFill()
-                            .frame(width: geo.size.width, height: 380)
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                            .frame(height: 380)
                             .clipped()
                     } placeholder: {
                         Rectangle().fill(Color.gray.opacity(0.2))
-                            .frame(width: geo.size.width, height: 380)
+                            .frame(height: 380)
                     } errorView: { _ in
                         Rectangle().fill(Color.gray.opacity(0.2))
-                            .frame(width: geo.size.width, height: 380)
+                            .frame(height: 380)
                     }
                 } else {
                     Image(user.imageName)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: geo.size.width, height: 380)
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                        .frame(height: 380)
                         .clipped()
                 }
             }
@@ -150,23 +152,21 @@ struct DailyPickCardView: View {
                 Spacer()
                 
                 // Info Box
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(isUnlocked ? "\(user.name), \(user.age)" : "??? , \(user.age)")
-                            .font(.title2.bold())
-                            .foregroundColor(.white)
-                            .shadow(radius: 5)
-                            
-                        HStack(spacing: 12) {
-                            Label(user.mbti, systemImage: "brain.head.profile")
-                            Label("\(user.distance) km", systemImage: "location.fill")
-                        }
-                        .font(.subheadline.bold())
-                        .foregroundColor(.white.opacity(0.9))
+                VStack(alignment: .center, spacing: 4) {
+                    Text(isUnlocked ? "\(user.name), \(user.age)" : "??? , \(user.age)")
+                        .font(.title2.bold())
+                        .foregroundColor(.white)
                         .shadow(radius: 5)
+                        
+                    HStack(spacing: 12) {
+                        Label(user.mbti, systemImage: "brain.head.profile")
+                        Label("\(user.distance) km", systemImage: "location.fill")
                     }
-                    Spacer()
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white.opacity(0.9))
+                    .shadow(radius: 5)
                 }
+                .frame(maxWidth: .infinity)
                 .padding()
                 // A subtle gradient to make text readable even when image is unlocked
                 .background(

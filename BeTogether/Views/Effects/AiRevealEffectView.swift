@@ -32,15 +32,28 @@ struct AiRevealEffectView<Content: View>: View {
                 VStack(spacing: 0) {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("AI Matchmaker")
-                                .font(.headline)
-                                .foregroundColor(.btTeal)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.white)
-                                .cornerRadius(12)
+                            // Confidence tier badge + AI label
+                            HStack(spacing: 8) {
+                                Text("AI Matchmaker")
+                                    .font(.headline)
+                                    .foregroundColor(.btTeal)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white)
+                                    .cornerRadius(12)
+                                
+                                if let tier = user.confidenceTier {
+                                    Text(tierStars(tier) + " " + tier)
+                                        .font(.caption.bold())
+                                        .foregroundColor(tierColor(tier))
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(tierColor(tier).opacity(0.15))
+                                        .cornerRadius(10)
+                                }
+                            }
                             
-                            Text("I found a great match!")
+                            Text(tierHeadline(user.confidenceTier))
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
@@ -99,6 +112,10 @@ struct AiRevealEffectView<Content: View>: View {
                                 .font(.system(size: 12, weight: .bold))
                             Text("Why this match?")
                                 .font(.caption.bold())
+                            if let tier = user.confidenceTier {
+                                Text(tierStars(tier))
+                                    .font(.caption2)
+                            }
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
@@ -113,7 +130,7 @@ struct AiRevealEffectView<Content: View>: View {
             }
         }
         .sheet(isPresented: $showReasonsSheet) {
-            ReasonsSheetView(reasons: candidateReasons)
+            ReasonsSheetView(reasons: candidateReasons, user: user)
         }
     }
     
@@ -127,35 +144,110 @@ struct AiRevealEffectView<Content: View>: View {
             }
         }
     }
+    
+    // MARK: - Tier Helpers
+    private func tierStars(_ tier: String?) -> String {
+        switch tier {
+        case "Excellent": return "★★★"
+        case "Great": return "★★"
+        case "Good": return "★"
+        default: return "★"
+        }
+    }
+    
+    private func tierColor(_ tier: String?) -> Color {
+        switch tier {
+        case "Excellent": return Color.yellow
+        case "Great": return Color.btTeal
+        case "Good": return Color.blue
+        default: return Color.gray
+        }
+    }
+    
+    private func tierHeadline(_ tier: String?) -> String {
+        switch tier {
+        case "Excellent": return "An exceptional match found!"
+        case "Great": return "A wonderful match for you!"
+        case "Good": return "A promising match found!"
+        default: return "I found a match for you!"
+        }
+    }
 }
 
 // MARK: - Reasons Sheet (shown after full reveal)
 
 struct ReasonsSheetView: View {
     let reasons: [String]
+    let user: User
     @Environment(\.dismiss) private var dismiss
     
     private let stepIcons = ["heart.text.square.fill", "person.crop.circle.fill.badge.checkmark", "leaf.fill", "star.fill"]
-    private let stepTitles = ["MBTI 궁합", "기본 매칭", "특성 매칭", "종합 추천"]
+    private let stepTitles = ["Emotional Connection", "Daily Life Compatibility", "Unique Bridge", "Match Summary"]
     private let stepColors: [Color] = [.purple, .blue, .green, .btTeal]
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header
+                    // Header with confidence tier
                     VStack(spacing: 8) {
                         Image(systemName: "sparkles")
                             .font(.system(size: 40))
                             .foregroundColor(.btTeal)
-                        Text("AI 추천 이유")
+                        Text("Why This Match")
                             .font(.title2.bold())
-                        Text("이 사람을 추천한 4가지 이유를 확인해보세요.")
+                        
+                        if let tier = user.confidenceTier {
+                            HStack(spacing: 4) {
+                                Text(tierStars(tier))
+                                    .foregroundColor(tierColor(tier))
+                                Text(tier + " Match")
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(tierColor(tier))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                            .background(tierColor(tier).opacity(0.1))
+                            .cornerRadius(20)
+                        }
+                        
+                        if let score = user.compositeScore {
+                            Text(String(format: "Compatibility Score: %.0f/100", score))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Text("Here's why we think you'd be great together.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 8)
+                    
+                    // Top Dimensions (if available)
+                    if let dims = user.topDimensions, !dims.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("TOP COMPATIBILITY AREAS")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 4)
+                            
+                            ForEach(dims, id: \.self) { dim in
+                                HStack(spacing: 8) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.btTeal)
+                                    Text(dim)
+                                        .font(.subheadline)
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.btTeal.opacity(0.06))
+                        .cornerRadius(16)
+                    }
                     
                     // Reason cards
                     ForEach(reasons.indices, id: \.self) { index in
@@ -199,6 +291,24 @@ struct ReasonsSheetView: View {
                         .foregroundColor(.btTeal)
                 }
             }
+        }
+    }
+    
+    private func tierStars(_ tier: String?) -> String {
+        switch tier {
+        case "Excellent": return "★★★"
+        case "Great": return "★★"
+        case "Good": return "★"
+        default: return "★"
+        }
+    }
+    
+    private func tierColor(_ tier: String?) -> Color {
+        switch tier {
+        case "Excellent": return Color.yellow
+        case "Great": return Color.btTeal
+        case "Good": return Color.blue
+        default: return Color.gray
         }
     }
 }

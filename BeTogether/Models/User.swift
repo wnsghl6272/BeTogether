@@ -25,6 +25,11 @@ struct User: Identifiable {
     var personalQA: [String: String]? = nil
     
     var imageNames: [String] = []
+    
+    // AI Match Scoring Data
+    var confidenceTier: String? = nil  // "Excellent", "Great", "Good"
+    var compositeScore: Double? = nil
+    var topDimensions: [String]? = nil // e.g. ["Emotional Safety: Very High", "Values: High"]
 }
 
 extension User {
