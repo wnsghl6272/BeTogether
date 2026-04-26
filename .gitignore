@@ -40,3 +40,4 @@ sql_test.swift
 
 # MBTI Algorithm Source (confidential - never push to remote)
 MBTI compatibility algorithm/
+test_ai_recommendation.sh

@@ -10,7 +10,19 @@ struct AiChatInterfaceView: View {
     @State private var matchedByPreference: Bool = true
     @State private var showMBTIModal: Bool = false
     
-    let sampleMBTITags = ["INTJ", "INFP", "ENFP", "ENTJ", "ISFJ", "ESFP", "INFJ", "ESTJ", "ISFP", "INTP", "ESTP", "ISTP", "ESFJ", "ENFJ", "ENTP", "ISTJ"]
+    // Persona suggestion states
+    @State private var personaSuggestions: [PersonaSuggestion] = []
+    @State private var isLoadingPersonas: Bool = true
+    @State private var typingTexts: [String] = ["", "", ""]
+    @State private var typingDone: [Bool] = [false, false, false]
+    
+    struct PersonaSuggestion: Identifiable {
+        let id = UUID()
+        let emoji: String
+        let label: String
+        let fullQuery: String
+        let tagline: String
+    }
     
     var body: some View {
         ScrollViewReader { proxy in
@@ -119,36 +131,81 @@ struct AiChatInterfaceView: View {
                             }
                             .padding(.horizontal, 16)
                             
-                            // ── MBTI Quick Tags ──
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Looking for specific MBTI?")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.secondary)
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 4)
+                            // ── AI Persona Suggestions ──
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "wand.and.stars")
+                                        .font(.caption)
+                                        .foregroundColor(.btTeal)
+                                    Text("Tailored for you")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.top, 4)
                                 
-                                ScrollView(.horizontal, showsIndicators: false) {
+                                if isLoadingPersonas {
+                                    // Shimmer loading placeholders
                                     HStack(spacing: 8) {
-                                        ForEach(sampleMBTITags, id: \.self) { mbti in
-                                            Button(action: {
-                                                if query.isEmpty {
-                                                    query = mbti
-                                                } else {
-                                                    query += ", \(mbti)"
-                                                }
-                                            }) {
-                                                Text(mbti)
-                                                    .font(.caption)
-                                                    .padding(.horizontal, 12)
-                                                    .padding(.vertical, 6)
-                                                    .background(query.contains(mbti) ? Color.btTeal : Color.btTeal.opacity(0.1))
-                                                    .foregroundColor(query.contains(mbti) ? .white : .btTeal)
-                                                    .cornerRadius(12)
-                                            }
+                                        ForEach(0..<3, id: \.self) { _ in
+                                            RoundedRectangle(cornerRadius: 14)
+                                                .fill(Color(.systemGray5).opacity(0.6))
+                                                .frame(width: 140, height: 80)
+                                                .shimmering()
                                         }
                                     }
                                     .padding(.horizontal, 16)
+                                } else {
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 10) {
+                                            ForEach(Array(personaSuggestions.enumerated()), id: \.element.id) { index, persona in
+                                                Button(action: {
+                                                    withAnimation(.spring(response: 0.3)) {
+                                                        query = persona.fullQuery
+                                                    }
+                                                }) {
+                                                    VStack(alignment: .leading, spacing: 6) {
+                                                        HStack(spacing: 4) {
+                                                            Text(persona.emoji)
+                                                                .font(.system(size: 16))
+                                                            Text(persona.label)
+                                                                .font(.caption2)
+                                                                .fontWeight(.bold)
+                                                                .foregroundColor(.btTeal)
+                                                        }
+                                                        
+                                                        Text(typingDone[safe: index] == true ? persona.tagline : (typingTexts[safe: index] ?? ""))
+                                                            .font(.caption)
+                                                            .foregroundColor(.primary.opacity(0.8))
+                                                            .lineLimit(2)
+                                                            .multilineTextAlignment(.leading)
+                                                            .frame(minHeight: 32, alignment: .topLeading)
+                                                    }
+                                                    .padding(.horizontal, 12)
+                                                    .padding(.vertical, 10)
+                                                    .frame(width: 160, alignment: .leading)
+                                                    .background(
+                                                        RoundedRectangle(cornerRadius: 14)
+                                                            .fill(.ultraThinMaterial)
+                                                    )
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 14)
+                                                            .stroke(
+                                                                LinearGradient(
+                                                                    colors: [Color.btTeal.opacity(0.4), Color.purple.opacity(0.2), Color.btTeal.opacity(0.15)],
+                                                                    startPoint: .topLeading,
+                                                                    endPoint: .bottomTrailing
+                                                                ),
+                                                                lineWidth: 1.2
+                                                            )
+                                                    )
+                                                    .shadow(color: Color.btTeal.opacity(0.08), radius: 6, x: 0, y: 3)
+                                                }
+                                            }
+                                        }
+                                        .padding(.horizontal, 16)
+                                    }
                                 }
                             }
                             .padding(.bottom, 8)
@@ -274,6 +331,9 @@ struct AiChatInterfaceView: View {
                         }
                     }
                 }
+            }
+            .onAppear {
+                Task { await loadPersonaSuggestions() }
             }
         }
     }
@@ -499,5 +559,231 @@ struct AiChatInterfaceView: View {
               let sub = json["sub"] as? String else { return nil }
         return sub
     }
+    
+    // MARK: - Persona Suggestions
+    
+    private func loadPersonaSuggestions() async {
+        guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
+              let userId = AuthManager.shared.currentUserId else {
+            await MainActor.run { isLoadingPersonas = false }
+            return
+        }
+        
+        do {
+            let client = AuthManager.shared.client
+            
+            // Fetch profile data
+            struct ProfileResult: Decodable {
+                let occupation: String?
+                let gender: String?
+                let one_line_intro: String?
+            }
+            let profiles: [ProfileResult] = (try? await client.from("profiles")
+                .select("occupation, gender, one_line_intro")
+                .eq("id", value: userId)
+                .execute()
+                .value) ?? []
+            
+            // Fetch user traits
+            struct TraitResult: Decodable {
+                let mbti: String?
+                let lifestyle: [String: String]?
+                let matching_preferences: [String: AnyCodable]?
+            }
+            let traits: [TraitResult] = (try? await client.from("user_traits")
+                .select("mbti, lifestyle, matching_preferences")
+                .eq("user_id", value: userId)
+                .execute()
+                .value) ?? []
+            
+            let profile = profiles.first
+            let trait = traits.first
+            
+            let suggestions = generatePersonaSuggestions(
+                mbti: trait?.mbti,
+                lifestyle: trait?.lifestyle,
+                occupation: profile?.occupation,
+                gender: profile?.gender,
+                preferences: trait?.matching_preferences
+            )
+            
+            await MainActor.run {
+                self.personaSuggestions = suggestions
+                self.isLoadingPersonas = false
+                self.typingTexts = Array(repeating: "", count: suggestions.count)
+                self.typingDone = Array(repeating: false, count: suggestions.count)
+            }
+            
+            // Start typewriter animation
+            for i in 0..<suggestions.count {
+                await startTypingAnimation(index: i, text: suggestions[i].tagline)
+            }
+        }
+    }
+    
+    private func generatePersonaSuggestions(
+        mbti: String?,
+        lifestyle: [String: String]?,
+        occupation: String?,
+        gender: String?,
+        preferences: [String: AnyCodable]?
+    ) -> [PersonaSuggestion] {
+        var suggestions: [PersonaSuggestion] = []
+        
+        // MBTI best match partner type map
+        let mbtiIdealPartners: [String: (type: String, desc: String)] = [
+            "INTJ": ("ENFP", "creative and spontaneous"),
+            "INTP": ("ENTJ", "decisive and driven"),
+            "ENTJ": ("INFP", "empathetic and imaginative"),
+            "ENTP": ("INFJ", "insightful and warm"),
+            "INFJ": ("ENTP", "witty and adventurous"),
+            "INFP": ("ENTJ", "confident and structured"),
+            "ENFJ": ("ISTP", "calm and practical"),
+            "ENFP": ("INTJ", "strategic and deep"),
+            "ISTJ": ("ESFP", "fun-loving and spontaneous"),
+            "ISFJ": ("ESTP", "energetic and bold"),
+            "ESTJ": ("ISFP", "gentle and artistic"),
+            "ESFJ": ("ISTP", "independent and cool"),
+            "ISTP": ("ESFJ", "warm and caring"),
+            "ISFP": ("ESTJ", "reliable and organized"),
+            "ESTP": ("ISFJ", "thoughtful and loyal"),
+            "ESFP": ("ISTJ", "steady and dependable")
+        ]
+        
+        // ── Suggestion 1: MBTI-based ideal partner ──
+        let mbtiType = mbti ?? "ENFP"
+        let idealPartner = mbtiIdealPartners[mbtiType] ?? ("ENFP", "creative and spontaneous")
+        
+        let mbtiTemplates = [
+            "How about meeting a \(idealPartner.desc) \(idealPartner.type)?",
+            "An \(idealPartner.type) could be your perfect balance ✨",
+            "Your \(mbtiType) pairs best with \(idealPartner.type)!",
+            "Today, try a \(idealPartner.desc) partner?"
+        ]
+        
+        suggestions.append(PersonaSuggestion(
+            emoji: "🧠",
+            label: "Soul Match",
+            fullQuery: "I'm \(mbtiType), find me someone \(idealPartner.desc) like \(idealPartner.type)",
+            tagline: mbtiTemplates.randomElement()!
+        ))
+        
+        // ── Suggestion 2: Lifestyle-based ──
+        let drink = lifestyle?["Drinking"] ?? lifestyle?["drinking"] ?? "Socially"
+        let smoke = lifestyle?["Smoking"] ?? lifestyle?["smoking"] ?? "Non-smoker"
+        let workout = lifestyle?["Workout"] ?? lifestyle?["workout"]
+        let loveLang = lifestyle?["Love Language"] ?? lifestyle?["love_language"]
+        
+        var lifestyleDesc: [String] = []
+        if smoke.lowercased().contains("non") || smoke.lowercased().contains("never") {
+            lifestyleDesc.append("non-smoker")
+        }
+        if drink.lowercased().contains("social") {
+            lifestyleDesc.append("social drinker")
+        }
+        if let w = workout, w.lowercased().contains("daily") {
+            lifestyleDesc.append("fitness lover")
+        }
+        if let lang = loveLang {
+            lifestyleDesc.append("who values \(lang)")
+        }
+        
+        let lifestyleQuery = lifestyleDesc.isEmpty ?
+            "Someone who shares my lifestyle" :
+            "Find me a \(lifestyleDesc.prefix(3).joined(separator: ", "))"
+        
+        let lifestyleTemplates = [
+            "Someone who vibes with your lifestyle 🎯",
+            "Match your daily rhythm perfectly",
+            "Find your lifestyle twin today",
+            "Same energy, same vibe ✨"
+        ]
+        
+        suggestions.append(PersonaSuggestion(
+            emoji: "🌿",
+            label: "Lifestyle Match",
+            fullQuery: lifestyleQuery,
+            tagline: lifestyleTemplates.randomElement()!
+        ))
+        
+        // ── Suggestion 3: Creative / Occupation-based ──
+        let occ = occupation ?? "professional"
+        let prefGender = preferences?["preferred_gender"]?.value as? String
+        
+        let creativeTemplates = [
+            "Discover someone who inspires you",
+            "A creative soul to spark something new",
+            "Meet your unexpected perfect match 💫",
+            "Step out of your comfort zone today"
+        ]
+        
+        let genderHint = prefGender != nil && prefGender != "Any" ? " (\(prefGender!))" : ""
+        
+        suggestions.append(PersonaSuggestion(
+            emoji: "✨",
+            label: "Surprise Me",
+            fullQuery: "I'm a \(occ), surprise me with someone special\(genderHint)",
+            tagline: creativeTemplates.randomElement()!
+        ))
+        
+        return suggestions
+    }
+    
+    private func startTypingAnimation(index: Int, text: String) async {
+        let chars = Array(text)
+        for i in 0..<chars.count {
+            try? await Task.sleep(nanoseconds: 30_000_000) // 30ms per char
+            await MainActor.run {
+                if index < typingTexts.count {
+                    typingTexts[index] = String(chars[0...i])
+                }
+            }
+        }
+        await MainActor.run {
+            if index < typingDone.count {
+                typingDone[index] = true
+            }
+        }
+    }
 
+}
+
+// MARK: - Safe Array Subscript
+extension Array {
+    subscript(safe index: Int) -> Element? {
+        return indices.contains(index) ? self[index] : nil
+    }
+}
+
+// MARK: - Shimmer Effect Modifier
+struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = 0
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        .clear,
+                        Color.white.opacity(0.4),
+                        .clear
+                    ]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .offset(x: phase)
+                .mask(content)
+            )
+            .onAppear {
+                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                    phase = 200
+                }
+            }
+    }
+}
+
+extension View {
+    func shimmering() -> some View {
+        modifier(ShimmerModifier())
+    }
 }

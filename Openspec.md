@@ -501,6 +501,40 @@ CMS = (MBTI × 0.40) + (Lifestyle × 0.25) + (Values × 0.20) + (Profile Affinit
 
 ---
 
+### Phase 17 — AI Recommendation Engine Finalization & Data Normalization
+
+AI 추천 엔진의 정확도와 자연어 인식 능력을 극대화하기 위해 라이프스타일 메타데이터를 정규화하고, 엣지 펑션의 하드 필터링 및 프롬프트를 고도화했습니다.
+
+#### 구성 요소
+
+**1. 테스트 유저 라이프스타일 데이터 정규화 (Data Normalization)**
+- 기존 임의의 랜덤 문자열로 생성된 테스트 유저들의 9가지 라이프스타일 데이터(Smoking, Drinking, Workout, Education 등)를 iOS 앱의 `PersonalityQAView`에서 사용하는 **정확한 Enum 값과 100% 일치**하도록 SQL 일괄 마이그레이션 수행.
+  - 예시: `Daily` → `Everyday`, `Rarely` → `Never`, `Frequently` → `Reviewer`
+- 이를 통해 서버 사이드 필터링 및 CMS(Composite Match Score) 계산 시 데이터 불일치로 인한 누락 및 오류 원천 차단.
+
+**2. 자연어 기반 하드 필터링 (Server-Side Filtering)**
+- `ai-recommendation/index.ts` 내에 유저의 자연어 검색어에서 특정 라이프스타일을 유추하는 정규식/키워드 매칭 로직 추가.
+  - **학력 (Education)**: "postgraduate", "undergraduate" 등
+  - **가족 계획 (Family Plans)**: "wants children", "doesn't want children" 등
+  - **연애 언어 (Love Language)**: "physical touch", "quality time" 등
+- 추출된 키워드를 바탕으로 GPT 모델에 컨텍스트를 넘기기 전, 데이터베이스 레벨에서 후보군을 먼저 좁혀(Filtering) 100% 조건에 부합하는 후보만 선별.
+
+**3. GPT 컨텍스트 인리치먼트 (Context Enrichment)**
+- 엣지 펑션이 GPT에 후보자 목록을 전달할 때, 9가지의 전체 라이프스타일 정보(Zodiac, Education, Family Plans 등)를 모두 텍스트로 풀어 제공 (`Education: Postgraduate, Family Plans: Want children` 등).
+- 이를 통해 생성형 AI가 "이 후보자는 당신과 같은 대학원생이며..." 와 같이 훨씬 더 맥락 있고 깊이 있는 영문 추천 이유(reasons)를 4단계로 반환할 수 있도록 고도화.
+
+**4. 자동화 테스트 스위트 확장 (`test_ai_recommendation.sh`)**
+- 새롭게 추가된 기능 검증을 위해 3가지 시나리오(학력, 가족계획, 연애 언어)에 대한 통합 테스트(E2E) 케이스 추가. 총 13개 시나리오 100% 통과 확인.
+
+#### 변경 파일 목록
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `ai-recommendation/index.ts` | [MODIFY] 라이프스타일 키워드 추출 정규식 추가, 하드 필터링 로직 구현, GPT 프롬프트 컨텍스트 확장 |
+| `test_ai_recommendation.sh` | [MODIFY] Education, Family Plans, Love Language 테스트 케이스 3개 추가 |
+
+---
+
 ## Future Features
 
 ### Apple Sign-In Integration (Postponed)

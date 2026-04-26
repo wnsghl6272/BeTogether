@@ -195,13 +195,51 @@ serve(async (req) => {
     // 3. Apply hard filters
     // ──────────────────────────────────────────────
     const queryLower = query.toLowerCase()
+    const queryUpper = query.toUpperCase()
     const isAnyoneQuery = queryLower.includes('anyone') || queryLower.includes('any') ||
       queryLower.includes('아무나') || queryLower.includes('상관없어') ||
       queryLower.includes('all') || queryLower.includes('누구나')
 
-    let effGender = isAnyoneQuery ? 'Any' : preferredGender
-    let effDistance = isAnyoneQuery ? 9999 : maxDistance
-    let effAge = isAnyoneQuery ? 100 : maxAge
+    // Detect specific MBTI type mentioned in query
+    const allMbtiTypes = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP']
+    const requestedMbti = allMbtiTypes.find(m => queryUpper.includes(m)) ?? null
+    console.log('Requested MBTI from query:', requestedMbti)
+
+    // Detect height preference from query (e.g. "over 185cm", "taller than 180")
+    const heightMatch = queryLower.match(/(?:over|above|taller than|at least|minimum|최소|이상)\s*(\d{3})/)
+    const requestedMinHeight = heightMatch ? parseInt(heightMatch[1]) : null
+    if (requestedMinHeight) console.log('Requested min height:', requestedMinHeight)
+
+    // Detect lifestyle preferences from query
+    const wantsNonDrinker = queryLower.includes('non-drinker') || queryLower.includes('non drinker') ||
+      queryLower.includes('doesn\'t drink') || queryLower.includes('no alcohol') ||
+      queryLower.includes('no drinking') || queryLower.includes('never drinks')
+    const wantsNonSmoker = queryLower.includes('non-smoker') || queryLower.includes('non smoker') ||
+      queryLower.includes('doesn\'t smoke') || queryLower.includes('no smoking') ||
+      queryLower.includes('never smokes')
+    const wantsDailyWorkout = queryLower.includes('works out daily') || queryLower.includes('daily workout') ||
+      queryLower.includes('exercises daily') || queryLower.includes('gym every day')
+    if (wantsNonDrinker) console.log('User wants non-drinker')
+    if (wantsNonSmoker) console.log('User wants non-smoker')
+
+    // Detect education preference
+    const educationLevels = ['high school', 'in college', 'undergraduate', 'postgraduate']
+    const requestedEducation = educationLevels.find(e => queryLower.includes(e)) ?? null
+    if (requestedEducation) console.log('Requested education:', requestedEducation)
+
+    // Detect family plans preference
+    const wantsChildren = queryLower.includes('wants children') || queryLower.includes('want children') || queryLower.includes('want kids') || queryLower.includes('wants kids')
+    const noChildren = queryLower.includes("doesn't want children") || queryLower.includes("don't want children") || queryLower.includes('no kids') || queryLower.includes("doesn't want kids")
+
+    // Detect love language preference
+    const loveLangs: Record<string, string> = { 'words of affirmation': 'Words of Affirmation', 'quality time': 'Quality Time', 'receiving gifts': 'Receiving Gifts', 'acts of service': 'Acts of Service', 'physical touch': 'Physical Touch' }
+    const requestedLoveLang = Object.keys(loveLangs).find(k => queryLower.includes(k)) ? loveLangs[Object.keys(loveLangs).find(k => queryLower.includes(k))!] : null
+    if (requestedLoveLang) console.log('Requested love language:', requestedLoveLang)
+
+    // Gender preference is ALWAYS respected — never override it
+    let effGender = preferredGender
+    let effDistance = (isAnyoneQuery || requestedMbti) ? 9999 : maxDistance
+    let effAge = (isAnyoneQuery || requestedMbti) ? 100 : maxAge
 
     // Fetch interactions to exclude
     const { data: interactions } = await supabaseClient
@@ -397,7 +435,108 @@ serve(async (req) => {
     // Sort by CMS descending
     scoredCandidates.sort((a, b) => b.scores.composite - a.scores.composite)
 
-    console.log('Scored candidates:', scoredCandidates.map(sc => `${sc.profile.nickname}: CMS=${sc.scores.composite}`))
+    // If user requested a specific MBTI, boost those candidates to the top
+    if (requestedMbti) {
+      scoredCandidates.sort((a, b) => {
+        const aMatch = a.trait?.mbti === requestedMbti ? 1 : 0
+        const bMatch = b.trait?.mbti === requestedMbti ? 1 : 0
+        if (bMatch !== aMatch) return bMatch - aMatch // matching MBTI first
+        return b.scores.composite - a.scores.composite // then by CMS
+      })
+      console.log('Boosted candidates with MBTI:', requestedMbti, 
+        scoredCandidates.slice(0, 6).map(sc => `${sc.profile.nickname}(${sc.trait?.mbti}): CMS=${sc.scores.composite}`))
+    }
+
+    console.log('Scored candidates:', scoredCandidates.slice(0, 5).map(sc => `${sc.profile.nickname}(${sc.trait?.mbti}): CMS=${sc.scores.composite}`))
+
+    // Apply server-side query filters before sending to GPT
+    let candidatesForGpt = [...scoredCandidates]
+
+    // Filter by requested MBTI type
+    if (requestedMbti) {
+      const mbtiMatches = candidatesForGpt.filter(sc => sc.trait?.mbti === requestedMbti)
+      console.log(`Found ${mbtiMatches.length} candidates with MBTI=${requestedMbti}`)
+      if (mbtiMatches.length > 0) {
+        if (mbtiMatches.length >= 4) {
+          candidatesForGpt = mbtiMatches
+        } else {
+          const others = candidatesForGpt.filter(sc => sc.trait?.mbti !== requestedMbti).slice(0, 4 - mbtiMatches.length)
+          candidatesForGpt = [...mbtiMatches, ...others]
+        }
+      }
+    }
+
+    // Filter by height preference
+    if (requestedMinHeight) {
+      const heightMatches = candidatesForGpt.filter(sc => {
+        const h = parseInt(sc.profile.height)
+        return !isNaN(h) && h >= requestedMinHeight
+      })
+      console.log(`Height filter: ${heightMatches.length} candidates >= ${requestedMinHeight}cm`)
+      if (heightMatches.length > 0) {
+        candidatesForGpt = heightMatches
+      }
+    }
+
+    // Filter by lifestyle: non-drinker
+    if (wantsNonDrinker) {
+      const ndMatches = candidatesForGpt.filter(sc => {
+        const d = sc.trait?.lifestyle?.Drinking
+        return d && (d === 'Never' || d === 'Non-drinker')
+      })
+      console.log(`Non-drinker filter: ${ndMatches.length} candidates`)
+      if (ndMatches.length > 0) candidatesForGpt = ndMatches
+    }
+
+    // Filter by lifestyle: non-smoker
+    if (wantsNonSmoker) {
+      const nsMatches = candidatesForGpt.filter(sc => {
+        const s = sc.trait?.lifestyle?.Smoking
+        return s && (s === 'Never' || s === 'Non-smoker')
+      })
+      console.log(`Non-smoker filter: ${nsMatches.length} candidates`)
+      if (nsMatches.length > 0) candidatesForGpt = nsMatches
+    }
+
+    // Filter by daily workout
+    if (wantsDailyWorkout) {
+      const wMatches = candidatesForGpt.filter(sc => {
+        const w = sc.trait?.lifestyle?.Workout
+        return w && (w === 'Daily' || w === 'Everyday')
+      })
+      console.log(`Daily workout filter: ${wMatches.length} candidates`)
+      if (wMatches.length > 0) candidatesForGpt = wMatches
+    }
+
+    // Filter by education level
+    if (requestedEducation) {
+      const eduMatches = candidatesForGpt.filter(sc => {
+        const e = sc.trait?.lifestyle?.Education
+        return e && e.toLowerCase() === requestedEducation
+      })
+      console.log(`Education filter (${requestedEducation}): ${eduMatches.length} candidates`)
+      if (eduMatches.length > 0) candidatesForGpt = eduMatches
+    }
+
+    // Filter by family plans
+    if (wantsChildren) {
+      const fcMatches = candidatesForGpt.filter(sc => sc.trait?.lifestyle?.['Family Plans'] === 'Want children')
+      console.log(`Wants children filter: ${fcMatches.length} candidates`)
+      if (fcMatches.length > 0) candidatesForGpt = fcMatches
+    } else if (noChildren) {
+      const ncMatches = candidatesForGpt.filter(sc => sc.trait?.lifestyle?.['Family Plans'] === "Don't want children")
+      console.log(`No children filter: ${ncMatches.length} candidates`)
+      if (ncMatches.length > 0) candidatesForGpt = ncMatches
+    }
+
+    // Filter by love language
+    if (requestedLoveLang) {
+      const llMatches = candidatesForGpt.filter(sc => sc.trait?.lifestyle?.['Love Language'] === requestedLoveLang)
+      console.log(`Love language filter (${requestedLoveLang}): ${llMatches.length} candidates`)
+      if (llMatches.length > 0) candidatesForGpt = llMatches
+    }
+
+    console.log('Candidates for GPT:', candidatesForGpt.length, candidatesForGpt.slice(0, 5).map(sc => `${sc.profile.nickname}(${sc.trait?.mbti})`))
 
     // ──────────────────────────────────────────────
     // 7. Build AI Prompt with rich rubric context
@@ -406,7 +545,7 @@ serve(async (req) => {
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     })
 
-    const candidatesContext = scoredCandidates.slice(0, 20).map((sc) => {
+    const candidatesContext = candidatesForGpt.slice(0, 20).map((sc) => {
       const c = sc.profile
       const age = c.birth_date ? currentYear - new Date(c.birth_date).getFullYear() : 'Unknown'
       const cMbti = sc.trait?.mbti ?? 'Unknown'
@@ -426,11 +565,13 @@ MBTI Compatibility Detail:
 
       return `
 ─── Candidate ID: ${c.id} ───
-Name: ${c.nickname || 'Unknown'}, Age: ${age}, MBTI: ${cMbti}
+Name: ${c.nickname || 'Unknown'}, Age: ${age}, Gender: ${c.gender || 'Unknown'}, MBTI: ${cMbti}
 Job: ${c.occupation || 'Unknown'}, Height: ${c.height || 'Unknown'}cm
 Self-intro: ${c.self_intro || 'N/A'}
 One-line intro: ${c.one_line_intro || 'N/A'}
-Lifestyle: Drinking=${sc.trait?.lifestyle?.Drinking || 'N/A'}, Smoking=${sc.trait?.lifestyle?.Smoking || 'N/A'}, Workout=${sc.trait?.lifestyle?.Workout || 'N/A'}
+Lifestyle: Drinking=${sc.trait?.lifestyle?.Drinking || 'N/A'}, Smoking=${sc.trait?.lifestyle?.Smoking || 'N/A'}, Workout=${sc.trait?.lifestyle?.Workout || 'N/A'}, Pets=${sc.trait?.lifestyle?.Pets || 'N/A'}
+Education: ${sc.trait?.lifestyle?.Education || 'N/A'}, Zodiac: ${sc.trait?.lifestyle?.['Zodiac Sign'] || 'N/A'}
+Family Plans: ${sc.trait?.lifestyle?.['Family Plans'] || 'N/A'}, Communication: ${sc.trait?.lifestyle?.['Communication Style'] || 'N/A'}, Love Language: ${sc.trait?.lifestyle?.['Love Language'] || 'N/A'}
 Composite Match Score: ${sc.scores.composite}/100 (MBTI: ${sc.scores.mbti}, Lifestyle: ${sc.scores.lifestyle}, Values: ${sc.scores.values}, Profile: ${sc.scores.profileAffinity})
 Confidence Tier: ${sc.confidenceTier}
 ${mbtiContext}`
@@ -453,7 +594,9 @@ CANDIDATES (sorted by Composite Match Score):
 ${candidatesContext}
 
 INSTRUCTIONS:
-1. Select up to 4 best candidates. If the user says "anyone" / "all" / has no specific preference, choose the top 4 by Composite Match Score.
+1. Select up to 4 best candidates.
+   - If the user mentions a specific MBTI type (e.g. "ISFP", "ENFP", "I want an INTJ"), you MUST ONLY select candidates with that exact MBTI type. The candidates list is already sorted with matching MBTI types at the top.
+   - If the user says "anyone" / "all" / has no specific preference, choose the top 4 by Composite Match Score.
 2. For each recommendation, generate 4 insightful reasons in ENGLISH:
    - reason1: An emotional connection insight. Reference the MBTI compatibility's emotional safety or why_it_works data. Example: "You both share high emotional safety, which means deeper conversations will feel natural and secure."
    - reason2: A daily life compatibility insight. Reference lifestyle alignment, dating style, or communication preferences. Example: "Both of you prefer structured planning, making daily routines and future goals easier to coordinate."
@@ -499,7 +642,12 @@ INSTRUCTIONS:
     // 8. Build final enriched response
     // ──────────────────────────────────────────────
     const finalCandidates = aiResponse.recommendations.map((rec: any) => {
-      const scored = scoredCandidates.find((sc) => sc.profile.id === rec.recommendedUserId)
+      // Try UUID match first, then fallback to nickname match
+      let scored = scoredCandidates.find((sc) => sc.profile.id === rec.recommendedUserId)
+      if (!scored) {
+        scored = scoredCandidates.find((sc) => sc.profile.nickname === rec.recommendedUserId)
+        if (scored) console.log('Matched by nickname fallback:', rec.recommendedUserId, '->', scored.profile.id)
+      }
       if (!scored) {
         console.warn('AI recommended unknown ID:', rec.recommendedUserId)
         return null
