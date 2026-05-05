@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
     @StateObject private var navManager = NavigationManager.shared
+    @StateObject private var store = StoreManager.shared
     
     var body: some View {
         TabView(selection: $navManager.selectedTab) {
@@ -58,6 +59,11 @@ struct MainTabView: View {
             }
         }
         .accentColor(.btTeal)
+        .onAppear {
+            Task {
+                await store.fetchEconomy()
+            }
+        }
     }
 }
 
@@ -66,3 +72,4 @@ struct MainTabView: View {
         .environmentObject(UserSessionViewModel())
         .environmentObject(OnboardingRouter())
 }
+

@@ -67,9 +67,13 @@ struct ProfileEditView: View {
                     HStack {
                         Label("Full Name", systemImage: "person.text.rectangle")
                         Spacer()
-                        TextField("Full Name", text: $fullName)
-                            .multilineTextAlignment(.trailing)
-                            .foregroundColor(.btTeal)
+                        HStack(spacing: 4) {
+                            Text(profile.full_name ?? "")
+                                .foregroundColor(.secondary)
+                            Image(systemName: "lock.fill")
+                                .font(.caption2)
+                                .foregroundColor(.gray)
+                        }
                     }
                     
                     HStack {

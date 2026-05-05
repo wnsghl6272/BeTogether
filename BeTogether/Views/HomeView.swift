@@ -3,7 +3,9 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var userSession: UserSessionViewModel
     @StateObject private var notifManager = NotificationManager.shared
+    @StateObject private var store = StoreManager.shared
     @State private var showPreferences = false
+    @State private var showStoreSheet = false
     
     var body: some View {
         NavigationView {
@@ -19,6 +21,21 @@ struct HomeView: View {
                 Spacer()
                 
                 HStack(spacing: 16) {
+                    // Coin Balance Indicator
+                    Button(action: { showStoreSheet = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "bitcoinsign.circle.fill")
+                                .foregroundColor(.yellow)
+                            Text("\(store.economy?.coins ?? 0)")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.btTeal)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.btTeal.opacity(0.1))
+                        .cornerRadius(16)
+                    }
+                    
                     // Alerts Icon
                     NavigationLink(destination: NotificationView()) {
                         ZStack(alignment: .topTrailing) {
@@ -59,6 +76,9 @@ struct HomeView: View {
             .navigationBarHidden(true)
             .sheet(isPresented: $showPreferences) {
                 MatchingPreferenceEditView()
+            }
+            .sheet(isPresented: $showStoreSheet) {
+                StoreView()
             }
             .onAppear {
                 Task {

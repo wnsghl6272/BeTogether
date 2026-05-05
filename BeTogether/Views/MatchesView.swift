@@ -60,8 +60,8 @@ struct DailyPicksView: View {
         .onAppear { loadPicks() }
         .alert(isPresented: $showPremiumAlert) {
             Alert(
-                title: Text("Premium Feature"),
-                message: Text("You have used your 1 free unlock for today. Upgrade to Premium to unlock more Daily Picks!"),
+                title: Text("Not Enough Coins"),
+                message: Text("Unlocking a Daily Pick requires 1 Coin. Tap the coin icon to get more, or upgrade to Premium for free unlocks!"),
                 dismissButton: .default(Text("Got It"))
             )
         }
@@ -84,7 +84,23 @@ struct DailyPicksView: View {
     
     private func unlock(user: User, at index: Int) {
         guard let targetId = user.supabaseId else { return }
+        
         Task {
+            let isPremium = StoreManager.shared.economy?.premiumStatus == true
+            
+            // Check if user has premium or at least 1 coin
+            if isPremium {
+                // Free unlock for premium
+            } else {
+                let success = await StoreManager.shared.spendCoins(amount: 1)
+                if !success {
+                    await MainActor.run {
+                        showPremiumAlert = true
+                    }
+                    return
+                }
+            }
+            
             do {
                 let success = try await InteractionManager.shared.unlockDailyPick(targetUserId: targetId)
                 await MainActor.run {
@@ -192,7 +208,10 @@ struct DailyPickCardView: View {
                     Button(action: onUnlock) {
                         HStack {
                             Image(systemName: "key.fill")
-                            Text("Unlock Profile")
+                            Text("Unlock")
+                            Image(systemName: "bitcoinsign.circle.fill")
+                                .foregroundColor(.yellow)
+                            Text("1")
                         }
                         .font(.headline.bold())
                         .foregroundColor(.btTeal)

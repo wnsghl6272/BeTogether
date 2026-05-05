@@ -31,6 +31,9 @@ struct ProfileMainView: View {
                             // Basic Info
                             profileHeaderSection(profile)
                             
+                            // Attendance Streak
+                            attendanceStreakSection
+                            
                             // Details
                             profileDetailsSection(profile)
                             
@@ -180,6 +183,55 @@ struct ProfileMainView: View {
             }
         }
         .padding(.horizontal)
+    }
+    
+    // MARK: - Attendance Streak
+    private var attendanceStreakSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("7-Day Check-In Streak")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            HStack(spacing: 8) {
+                let days = StoreManager.shared.economy?.attendanceDays ?? 0
+                ForEach(1...7, id: \.self) { day in
+                    VStack(spacing: 4) {
+                        ZStack {
+                            Circle()
+                                .fill(day <= days ? Color.btTeal : Color.gray.opacity(0.2))
+                                .frame(width: 40, height: 40)
+                            
+                            if day <= days {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.white)
+                                    .font(.caption.bold())
+                            } else {
+                                // Show upcoming rewards
+                                if day == 3 || day == 5 {
+                                    Image(systemName: "gift.fill")
+                                        .foregroundColor(.orange)
+                                        .font(.caption)
+                                } else if day == 7 {
+                                    Image(systemName: "star.fill")
+                                        .foregroundColor(.yellow)
+                                        .font(.caption)
+                                }
+                            }
+                        }
+                        Text("Day \(day)")
+                            .font(.caption2)
+                            .foregroundColor(day <= days ? .btTeal : .gray)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal)
+        }
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .padding(.horizontal)
+        .shadow(color: .black.opacity(0.03), radius: 5, y: 2)
     }
     
     // MARK: - Profile Details

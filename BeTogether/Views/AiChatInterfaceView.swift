@@ -16,6 +16,11 @@ struct AiChatInterfaceView: View {
     @State private var typingTexts: [String] = ["", "", ""]
     @State private var typingDone: [Bool] = [false, false, false]
     
+    // Store Integration
+    @StateObject private var store = StoreManager.shared
+    @State private var checkInMessage = ""
+    @State private var alreadyCheckedIn = false
+    
     struct PersonaSuggestion: Identifiable {
         let id = UUID()
         let emoji: String
@@ -25,12 +30,39 @@ struct AiChatInterfaceView: View {
     }
     
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 20) {
-                    
-                    // ── MBTI Compatibility Guide Banner ──
-                    Button(action: {
+        VStack(spacing: 20) {
+            
+            // ── Daily Attendance Banner ──
+            Button(action: {
+                if !alreadyCheckedIn {
+                    Task {
+                        let result = await store.checkDailyAttendance()
+                        checkInMessage = result.message
+                        alreadyCheckedIn = true
+                    }
+                }
+            }) {
+                HStack {
+                    Image(systemName: alreadyCheckedIn ? "checkmark.circle.fill" : "gift.fill")
+                        .foregroundColor(alreadyCheckedIn ? .green : .yellow)
+                    Text(alreadyCheckedIn ? "Checked In Today" : "Tap here for Daily Check-in!")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .background(alreadyCheckedIn ? Color.black.opacity(0.8) : Color.btTeal)
+                .cornerRadius(12)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            
+            // ── MBTI Compatibility Guide Banner ──
+            Button(action: {
                         showMBTIModal = true
                     }) {
                         HStack {
@@ -227,6 +259,15 @@ struct AiChatInterfaceView: View {
                                             Image(systemName: "paperplane.fill")
                                             Text("Start AI Matching")
                                                 .font(.subheadline.bold())
+                                            
+                                            // Coin Indicator
+                                            HStack(spacing: 2) {
+                                                Image(systemName: "bitcoinsign.circle.fill")
+                                                Text("2")
+                                            }
+                                            .font(.caption2.bold())
+                                            .foregroundColor(.yellow)
+                                            .padding(.leading, 4)
                                         }
                                     }
                                     .foregroundColor(.white)
@@ -249,92 +290,41 @@ struct AiChatInterfaceView: View {
                     .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
                     .padding(.horizontal, 14)
                     
-                    // ── Inline Matches Result ──
-                    if showMatchesModal && !matchedUsers.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text("AI Recommendations (\(matchedUsers.count))")
-                                    .font(.headline)
-                                    .padding(.horizontal, 16)
-                                Spacer()
-                            }
-                            
-                            if matchedByPreference {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "sparkles")
-                                        .foregroundColor(.green)
-                                    Text("We found perfect matches based on your preferences! ✨")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 6)
-                                .background(Color.green.opacity(0.08))
-                                .cornerRadius(8)
-                                .padding(.horizontal, 14)
-                            } else {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "info.circle.fill")
-                                        .foregroundColor(.orange)
-                                    Text("It seems your perfect match is away, so we slightly broadened your criteria to find someone you might click with!")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 6)
-                                .background(Color.orange.opacity(0.08))
-                                .cornerRadius(8)
-                                .padding(.horizontal, 14)
-                            }
-                            
-                            if let firstUser = matchedUsers.first, let firstReason = matchReasonsArray.first {
-                                PhotoCardView(user: firstUser, effect: .aiReveal(reasons: firstReason)) { actionStr in
-                                    handleCardAction(action: actionStr, matchedUser: firstUser)
-                                }
-                                .padding(.horizontal, 14)
-                                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
-                                .id(firstUser.id) // Ensure transition happens when ID changes
-                            }
-                        }
-                        .id("matchesResult")
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: showMatchesModal)
-                    } else {
-                        // ── Placeholder if no results / not searched ──
-                        VStack {
-                            Spacer()
-                            Text("Your destined partner will appear\nhere soon.")
-                                .multilineTextAlignment(.center)
-                                .font(.subheadline)
-                                .foregroundColor(Color.gray.opacity(0.6))
-                            Spacer()
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: max(200, UIScreen.main.bounds.height - 450))
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [8, 4]))
-                                .foregroundColor(Color.gray.opacity(0.3))
-                        )
-                        .padding(.horizontal, 14)
-                        .padding(.top, 10)
-                        .padding(.bottom, 20)
-                    }
+                    Spacer()
                 }
                 .padding(.vertical, 10)
-            }
-            .onChange(of: showMatchesModal) { _, newValue in
-                if newValue {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        withAnimation(.easeInOut) {
-                            proxy.scrollTo("matchesResult", anchor: .top)
-                        }
-                    }
+            .onAppear {
+                Task {
+                    await loadPersonaSuggestions()
+                    checkIfAlreadyCheckedIn()
                 }
             }
-            .onAppear {
-                Task { await loadPersonaSuggestions() }
+            .onChange(of: store.economy) { _ in
+                checkIfAlreadyCheckedIn()
             }
+            .fullScreenCover(isPresented: $showMatchesModal) {
+                AiMatchesModalView(
+                    matchedUsers: $matchedUsers,
+                    matchReasonsArray: $matchReasonsArray,
+                    showMatchesModal: $showMatchesModal,
+                    matchedByPreference: matchedByPreference,
+                    onAction: { actionStr, user in
+                        handleCardAction(action: actionStr, matchedUser: user)
+                    }
+                )
+            }
+            .alert("Not Enough Coins", isPresented: $showCoinAlert) {
+                Button("Got It", role: .cancel) {}
+            } message: {
+                Text("AI Matchmaking costs 2 Coins. Tap the coin icon on the top right to get more!")
+            }
+    }
+    
+    private func checkIfAlreadyCheckedIn() {
+        if let lastDate = store.economy?.lastAttendanceDate,
+           Calendar.current.isDate(lastDate, inSameDayAs: Date()) {
+            alreadyCheckedIn = true
+            checkInMessage = "You already checked in today!"
         }
     }
     
@@ -374,7 +364,17 @@ struct AiChatInterfaceView: View {
         }
     }
     
+    @State private var showCoinAlert = false
+
     private func fetchAiRecommendation() async {
+        let success = await StoreManager.shared.spendCoins(amount: 2)
+        if !success {
+            await MainActor.run {
+                showCoinAlert = true
+            }
+            return
+        }
+        
         isPredicting = true
         defer { isPredicting = false }
         
@@ -785,5 +785,79 @@ struct ShimmerModifier: ViewModifier {
 extension View {
     func shimmering() -> some View {
         modifier(ShimmerModifier())
+    }
+}
+
+// MARK: - AI Matches Modal View
+struct AiMatchesModalView: View {
+    @Binding var matchedUsers: [User]
+    @Binding var matchReasonsArray: [[String]]
+    @Binding var showMatchesModal: Bool
+    let matchedByPreference: Bool
+    let onAction: (String, User) -> Void
+    
+    var body: some View {
+        ZStack {
+            Color.btIvory.edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Header with close button
+                    HStack {
+                        Text("AI Recommendations (\(matchedUsers.count))")
+                            .font(.headline)
+                            .padding(.horizontal, 16)
+                        Spacer()
+                        Button(action: { showMatchesModal = false }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundColor(.gray.opacity(0.7))
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.top, 20)
+                    
+                    if matchedByPreference {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.green)
+                            Text("We found perfect matches based on your preferences! ✨")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(Color.green.opacity(0.08))
+                        .cornerRadius(8)
+                        .padding(.horizontal, 14)
+                    } else {
+                        HStack(spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.orange)
+                            Text("It seems your perfect match is away, so we slightly broadened your criteria to find someone you might click with!")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(Color.orange.opacity(0.08))
+                        .cornerRadius(8)
+                        .padding(.horizontal, 14)
+                    }
+                    
+                    if let firstUser = matchedUsers.first, let firstReason = matchReasonsArray.first {
+                        PhotoCardView(user: firstUser, effect: .aiReveal(reasons: firstReason)) { actionStr in
+                            onAction(actionStr, firstUser)
+                        }
+                        .padding(.horizontal, 14)
+                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
+                        .id(firstUser.id) // Ensure transition happens when ID changes
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.bottom, 30)
+            }
+        }
     }
 }

@@ -23,7 +23,8 @@ AI 기반 유저 매칭 추천 기능. 유저가 원하는 상대방을 자연�
 - `TextEditor` 기반 멀티라인 입력창
 - `AuthManager.fetchCurrentAccessToken()` — 세션 자동 갱신 후 유효 JWT 반환
 - 수동 `URLRequest`로 Edge Function 호출 (Authorization: Bearer + apikey 헤더)
-- 추천 결과 → `AiRevealEffectView`로 전달 (4단계 블러 해제 애니메이션)
+- 추천 결과 → **풀스크린 모달(`.fullScreenCover`)** 로 표시하여 사용자가 몰입감 있게 후보를 평가(Like/Pass)하도록 유도 (`AiMatchesModalView` 컴포넌트 분리)
+- 각 후보 카드는 `AiRevealEffectView`를 통해 보여짐
 
 **3. iOS — `AiRevealEffectView.swift`**
 - 4단계 gamified 블러 해제 효과
@@ -532,6 +533,80 @@ AI 추천 엔진의 정확도와 자연어 인식 능력을 극대화하기 위�
 |------|-----------|
 | `ai-recommendation/index.ts` | [MODIFY] 라이프스타일 키워드 추출 정규식 추가, 하드 필터링 로직 구현, GPT 프롬프트 컨텍스트 확장 |
 | `test_ai_recommendation.sh` | [MODIFY] Education, Family Plans, Love Language 테스트 케이스 3개 추가 |
+
+---
+
+### Phase 18 — Gamified Coin Economy, Attendance System & AI Matching Algorithm Enhancement
+
+코인 기반 게이미피케이션 경제 시스템 도입, 출석체크 기능 구현, 불필요한 매칭 필터 제거, 그리고 AI 추천 알고리즘을 대폭 강화하여 나를 좋아한 유저를 우선 추천하는 로직을 추가했습니다.
+
+#### 구성 요소
+
+**1. 코인 경제 시스템 (Coin Economy)**
+- Supabase `user_economy` 테이블 신설 (컬럼: `user_id`, `coins`, `last_attendance_date`, `consecutive_days`)
+  - `user_id` 기준 `UNIQUE` 제약 조건으로 중복 데이터 원천 차단
+- `StoreManager.swift` — 코인 잔액 관리 싱글턴
+  - 앱 시작 시 DB에서 유저별 코인 잔액 로드 (세션 간 데이터 영속성 보장)
+  - 날짜 디코딩 버그 수정: `last_attendance_date`를 `String?` 타입으로 저장하고 `yyyy-MM-dd` ↔ `Date` 복합 변환기 적용
+  - 코인 소모/충전 시 즉시 DB 반영
+
+**2. 출석체크 시스템 (Daily Attendance)**
+- `AiChatInterfaceView` 상단에 출석체크 배너 UI 통합
+- 매일 1회 출석체크 시 코인 10개 지급
+- 연속 출석 보너스: 3일(+2코인), 5일(+2코인), 7일(+4코인)
+- 하루라도 빠지면 누적 카운트 유지 (리셋 없음)
+- 날짜 비교 방식으로 유저별 일일 리셋 구현
+- 이미 출석체크 완료 시 "✅ Checked in today" 표시
+
+**3. 코인 소모 구조**
+- AI Matchmaking 검색: 코인 2개
+- Explore에서 추천 프로필 Unlock: 코인 1개
+- Someone Liked You 알림 확인: 코인 1개
+- Daily Picks Unlock: 무료
+- 각 버튼 옆에 코인 소모량 직관적 UI 표시
+
+**4. UI/UX 개선**
+- `HomeView` 헤더에 코인 잔액 표시 (코인 아이콘 + 숫자)
+- 코인 충전 스토어 시트 연결
+- `MainTabView`에서 중복되던 floating 배너/코인 표시 제거 → 각 개별 뷰로 이관
+
+**5. Matching Preferences 정리**
+- `MatchingPreferenceEditView` 및 `MatchingPreferenceView`(온보딩)에서 `Prioritize Recently Active` 토글 삭제
+- Edge Function에서 `prioritizeActive` 변수 및 관련 필터링 로직 (`last_active_at` 3일 기준) 완전 제거
+
+**6. AI 추천 알고리즘 강화 (Edge Function v34)**
+
+- **추천 인원 확장**: 4명 → 5명으로 증가 (GPT 프롬프트, 필터링 로직, MBTI 매칭 분기 모두 반영)
+- **Pending Liker 우선 추천 시스템 (핵심 기능)**:
+  - `user_interactions` 테이블에서 현재 유저를 `like` 또는 `super_like`한 유저(Pending Likers)를 조회
+  - 이미 내가 상호작용(like/pass)한 유저는 제외
+  - Pending Liker가 존재할 경우, 랜덤 셔플 후 **최대 3명**을 GPT 후보 풀에 주입
+    - 1명만 있으면 → 1명 주입
+    - 2명이면 → 2명 주입
+    - 3명 이상이면 → 랜덤 3명 주입
+  - 이미 GPT 풀에 포함된 liker는 중복 주입하지 않음
+  - 매 검색마다 새로 조회하므로, 다음 검색 시 다른 liker가 노출될 수 있음
+  - 로그: `Pending likers (liked us, not yet interacted): N`, `Injected pending liker into GPT pool: nickname`
+
+#### 데이터베이스 변경
+
+| 테이블 | 변경 내용 |
+|--------|-----------|
+| `user_economy` | [NEW TABLE] `user_id` (UUID, UNIQUE), `coins` (INT), `last_attendance_date` (TEXT), `consecutive_days` (INT) |
+
+#### 변경 파일 목록
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `StoreManager.swift` | [REWRITE] 코인 경제 관리 싱글턴 — DB 영속성, 날짜 디코딩 버그 수정, 출석체크 로직 |
+| `AiChatInterfaceView.swift` | [MODIFY] 출석체크 배너 UI, 코인 소모 표시, AI Matching 코인 2개 차감 로직 |
+| `HomeView.swift` | [MODIFY] 헤더에 코인 잔액 표시 및 스토어 시트 연결 |
+| `ExploreView.swift` | [MODIFY] Unlock 프로필 코인 1개 소모 UI/로직 |
+| `MatchesView.swift` | [MODIFY] Daily Picks unlock 무료 표시 |
+| `MainTabView.swift` | [MODIFY] 중복 floating UI 제거, 코드 정리 |
+| `MatchingPreferenceEditView.swift` | [MODIFY] Prioritize Recently Active 토글 삭제 |
+| `MatchingPreferenceView.swift` | [MODIFY] 온보딩 Prioritize Recently Active 토글 삭제 |
+| `ai-recommendation/index.ts` | [MODIFY] prioritizeActive 필터 제거, 5명 추천, Pending Liker 최대 3명 주입 로직 추가 (v34) |
 
 ---
 

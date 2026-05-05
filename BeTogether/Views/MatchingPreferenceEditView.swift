@@ -92,19 +92,11 @@ struct MatchingPreferenceEditView: View {
                             .accentColor(.btTeal)
                     }
                     
-                    // Prioritize Active
-                    VStack(alignment: .leading, spacing: 10) {
-                        Toggle("Prioritize Recently Active", isOn: $prioritizeActiveUsers)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .toggleStyle(SwitchToggleStyle(tint: .btTeal))
-                    }
-                    
                     // Filters - Drinking
-                    filterSection(title: "Okay with Drinking", options: drinkingOptions, selected: $selectedDrinkingFilters)
+                    filterSection(title: "Drinking Habit", options: drinkingOptions, selected: $selectedDrinkingFilters)
                     
                     // Filters - Smoking
-                    filterSection(title: "Okay with Smoking", options: smokingOptions, selected: $selectedSmokingFilters)
+                    filterSection(title: "Smoking Habit", options: smokingOptions, selected: $selectedSmokingFilters)
                     
 
                 }
@@ -195,7 +187,7 @@ struct MatchingPreferenceEditView: View {
                             if isSelected {
                                 selected.wrappedValue.remove(option)
                             } else {
-                                selected.wrappedValue.insert(option)
+                                selected.wrappedValue = [option]
                             }
                         }
                 }

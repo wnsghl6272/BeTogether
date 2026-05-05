@@ -274,6 +274,7 @@ struct PendingLikeCardView: View {
     let user: User
     let onLikeBack: (User) -> Void
     @State private var isUnlocked = false
+    @State private var showCoinAlert = false
     
     var body: some View {
         ZStack {
@@ -297,17 +298,44 @@ struct PendingLikeCardView: View {
                     .background(Color.pink)
                     .cornerRadius(15)
                 } else {
-                    Button("Unlock") {
-                        withAnimation(.spring()) {
-                            isUnlocked = true
+                    Button(action: {
+                        Task {
+                            let isPremium = StoreManager.shared.economy?.premiumStatus == true
+                            if isPremium {
+                                await MainActor.run {
+                                    withAnimation(.spring()) {
+                                        isUnlocked = true
+                                    }
+                                }
+                            } else {
+                                let success = await StoreManager.shared.spendCoins(amount: 1)
+                                if success {
+                                    await MainActor.run {
+                                        withAnimation(.spring()) {
+                                            isUnlocked = true
+                                        }
+                                    }
+                                } else {
+                                    await MainActor.run {
+                                        showCoinAlert = true
+                                    }
+                                }
+                            }
                         }
+                    }) {
+                        HStack(spacing: 2) {
+                            Text("Unlock")
+                            Image(systemName: "bitcoinsign.circle.fill")
+                                .foregroundColor(.yellow)
+                            Text("1")
+                        }
+                        .font(.caption.bold())
+                        .foregroundColor(.btTeal)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.btTeal, lineWidth: 1))
                     }
-                    .font(.caption.bold())
-                    .foregroundColor(.btTeal)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 15).stroke(Color.btTeal, lineWidth: 1))
                 }
             }
             
@@ -324,6 +352,11 @@ struct PendingLikeCardView: View {
         .background(Color(.systemBackground))
         .cornerRadius(15)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 4)
+        .alert("Not Enough Coins", isPresented: $showCoinAlert) {
+            Button("Got It", role: .cancel) {}
+        } message: {
+            Text("Unlocking who liked you costs 1 Coin. Tap the coin icon to get more, or upgrade to Premium for free unlocks!")
+        }
     }
 }
 

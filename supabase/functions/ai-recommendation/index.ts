@@ -171,7 +171,6 @@ serve(async (req) => {
 
     // Matching preferences (hard filters)
     const preferredGender = prefs?.preferred_gender ?? prefs?.preferredGender ?? 'Any'
-    const prioritizeActive = prefs?.prioritize_active ?? prefs?.prioritizeActiveUsers ?? false
     let maxDistance = prefs?.max_distance ?? prefs?.maxDistance ?? 50
     let maxAge = prefs?.max_age ?? prefs?.maxAge ?? 100
     const filterSmoking = prefs?.filter_smoking ?? []
@@ -262,6 +261,25 @@ serve(async (req) => {
       })
     }
 
+    // ── Fetch users who liked the current user (pending likers) ──
+    // These are people who liked us but we haven't interacted with yet.
+    const { data: incomingLikes } = await supabaseClient
+      .from('user_interactions')
+      .select('from_user')
+      .eq('to_user', userId)
+      .in('action', ['like', 'super_like'])
+
+    const pendingLikerIds = new Set<string>()
+    if (incomingLikes) {
+      incomingLikes.forEach((like: any) => {
+        // Only include if we haven't already interacted with them
+        if (!excludedIds.has(like.from_user)) {
+          pendingLikerIds.add(like.from_user)
+        }
+      })
+    }
+    console.log('Pending likers (liked us, not yet interacted):', pendingLikerIds.size)
+
     const currentYear = new Date().getFullYear()
     const currentLat = currentUser.latitude
     const currentLon = currentUser.longitude
@@ -274,13 +292,6 @@ serve(async (req) => {
     unblockedCandidates.forEach((c: any) => {
       // Gender filter
       if (effGender !== 'Any' && c.gender && c.gender.toLowerCase() !== effGender.toLowerCase()) return
-
-      // Active filter
-      if (prioritizeActive) {
-        if (!c.last_active_at) return
-        const daysSince = (Date.now() - new Date(c.last_active_at).getTime()) / (1000 * 3600 * 24)
-        if (daysSince > 3) return
-      }
 
       const age = c.birth_date ? currentYear - new Date(c.birth_date).getFullYear() : 99
       const distance = calculateDistance(currentLat, currentLon, c.latitude, c.longitude)
@@ -295,7 +306,7 @@ serve(async (req) => {
     let matchedByPreference = true
     let filteredCandidates = strictCandidates
 
-    if (strictCandidates.length < 4) {
+    if (strictCandidates.length < 5) {
       matchedByPreference = false
       const comb = [...strictCandidates, ...relaxedCandidates]
       const uniqueIds = new Set()
@@ -457,10 +468,10 @@ serve(async (req) => {
       const mbtiMatches = candidatesForGpt.filter(sc => sc.trait?.mbti === requestedMbti)
       console.log(`Found ${mbtiMatches.length} candidates with MBTI=${requestedMbti}`)
       if (mbtiMatches.length > 0) {
-        if (mbtiMatches.length >= 4) {
+        if (mbtiMatches.length >= 5) {
           candidatesForGpt = mbtiMatches
         } else {
-          const others = candidatesForGpt.filter(sc => sc.trait?.mbti !== requestedMbti).slice(0, 4 - mbtiMatches.length)
+          const others = candidatesForGpt.filter(sc => sc.trait?.mbti !== requestedMbti).slice(0, 5 - mbtiMatches.length)
           candidatesForGpt = [...mbtiMatches, ...others]
         }
       }
@@ -536,7 +547,29 @@ serve(async (req) => {
       if (llMatches.length > 0) candidatesForGpt = llMatches
     }
 
-    console.log('Candidates for GPT:', candidatesForGpt.length, candidatesForGpt.slice(0, 5).map(sc => `${sc.profile.nickname}(${sc.trait?.mbti})`))
+    // ── Inject pending likers into GPT candidates ──
+    // Include up to 3 people who already liked us in the pool
+    const likerScoredCandidates = scoredCandidates.filter(sc => pendingLikerIds.has(sc.profile.id))
+    if (likerScoredCandidates.length > 0) {
+      // Shuffle likers randomly and pick up to 3
+      const shuffled = [...likerScoredCandidates].sort(() => Math.random() - 0.5)
+      const maxLikers = Math.min(shuffled.length, 3)
+      let injectedCount = 0
+      for (let i = 0; i < maxLikers; i++) {
+        const liker = shuffled[i]
+        const alreadyInGpt = candidatesForGpt.some(sc => sc.profile.id === liker.profile.id)
+        if (!alreadyInGpt) {
+          candidatesForGpt.push(liker)
+          injectedCount++
+          console.log('Injected pending liker into GPT pool:', liker.profile.nickname)
+        } else {
+          console.log('Pending liker already in GPT pool:', liker.profile.nickname)
+        }
+      }
+      console.log(`Total pending likers injected: ${injectedCount}/${likerScoredCandidates.length} available`)
+    }
+
+    console.log('Candidates for GPT:', candidatesForGpt.length, candidatesForGpt.slice(0, 8).map(sc => `${sc.profile.nickname}(${sc.trait?.mbti})`))
 
     // ──────────────────────────────────────────────
     // 7. Build AI Prompt with rich rubric context
@@ -594,9 +627,9 @@ CANDIDATES (sorted by Composite Match Score):
 ${candidatesContext}
 
 INSTRUCTIONS:
-1. Select up to 4 best candidates.
+1. Select up to 5 best candidates.
    - If the user mentions a specific MBTI type (e.g. "ISFP", "ENFP", "I want an INTJ"), you MUST ONLY select candidates with that exact MBTI type. The candidates list is already sorted with matching MBTI types at the top.
-   - If the user says "anyone" / "all" / has no specific preference, choose the top 4 by Composite Match Score.
+   - If the user says "anyone" / "all" / has no specific preference, choose the top 5 by Composite Match Score.
 2. For each recommendation, generate 4 insightful reasons in ENGLISH:
    - reason1: An emotional connection insight. Reference the MBTI compatibility's emotional safety or why_it_works data. Example: "You both share high emotional safety, which means deeper conversations will feel natural and secure."
    - reason2: A daily life compatibility insight. Reference lifestyle alignment, dating style, or communication preferences. Example: "Both of you prefer structured planning, making daily routines and future goals easier to coordinate."
