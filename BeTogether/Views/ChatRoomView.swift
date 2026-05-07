@@ -107,7 +107,7 @@ struct ChatRoomView: View {
         .onAppear {
             Task {
                 if let token = await AuthManager.shared.fetchCurrentAccessToken(),
-                   let uid = AiChatInterfaceView.extractSubFromJWT(token) {
+                   let uid = AiRecommendationService.extractSubFromJWT(token) {
                     self.currentUserId = uid
                 }
                 
@@ -115,7 +115,7 @@ struct ChatRoomView: View {
                 if conversationType == "friend", let partnerId = partner.supabaseId {
                     let client = AuthManager.shared.client
                     if let token = await AuthManager.shared.fetchCurrentAccessToken(),
-                       let uid = await AiChatInterfaceView.extractSubFromJWT(token) {
+                       let uid = await AiRecommendationService.extractSubFromJWT(token) {
                         struct FriendCount: Decodable { let count: Int }
                         let count: Int = (try? await client.from("friendships")
                             .select("id", head: true, count: .exact)

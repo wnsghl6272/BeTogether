@@ -158,7 +158,8 @@ struct DailyPickCardView: View {
             
             // Blur Effect if Locked
             if !isUnlocked {
-                VisualEffectBlur(blurStyle: .regular)
+                Color.white.opacity(0.3)
+                    .background(.ultraThinMaterial)
                     .frame(height: 380)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
             }

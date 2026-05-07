@@ -9,6 +9,7 @@ struct AiChatInterfaceView: View {
     @State private var showMatchesModal: Bool = false
     @State private var matchedByPreference: Bool = true
     @State private var showMBTIModal: Bool = false
+    @State private var showCoinAlert = false
     
     // Persona suggestion states
     @State private var personaSuggestions: [PersonaSuggestion] = []
@@ -20,6 +21,7 @@ struct AiChatInterfaceView: View {
     @StateObject private var store = StoreManager.shared
     @State private var checkInMessage = ""
     @State private var alreadyCheckedIn = false
+    @State private var showStoreSheet = false
     
     struct PersonaSuggestion: Identifiable {
         let id = UUID()
@@ -33,292 +35,352 @@ struct AiChatInterfaceView: View {
         VStack(spacing: 20) {
             
             // ── Daily Attendance Banner ──
-            Button(action: {
-                if !alreadyCheckedIn {
-                    Task {
-                        let result = await store.checkDailyAttendance()
-                        checkInMessage = result.message
-                        alreadyCheckedIn = true
-                    }
-                }
-            }) {
-                HStack {
-                    Image(systemName: alreadyCheckedIn ? "checkmark.circle.fill" : "gift.fill")
-                        .foregroundColor(alreadyCheckedIn ? .green : .yellow)
-                    Text(alreadyCheckedIn ? "Checked In Today" : "Tap here for Daily Check-in!")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                .padding(.vertical, 12)
-                .padding(.horizontal, 16)
-                .background(alreadyCheckedIn ? Color.black.opacity(0.8) : Color.btTeal)
-                .cornerRadius(12)
-            }
-            .padding(.horizontal, 14)
-            .padding(.top, 10)
+            attendanceBanner
+            
+            // ── Join Premium Subscription Banner ──
+            premiumBanner
             
             // ── MBTI Compatibility Guide Banner ──
-            Button(action: {
-                        showMBTIModal = true
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("MBTI Compatibility Guide")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(.black)
-                                Text("Tap to find your perfect match type")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14))
-                                .foregroundColor(.gray)
-                        }
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 16)
-                        .background(
-                            LinearGradient(gradient: Gradient(colors: [Color.pink.opacity(0.15), Color.purple.opacity(0.1)]), startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                        .cornerRadius(12)
-                    }
-                    .padding(.horizontal, 14)
-                    .sheet(isPresented: $showMBTIModal) {
-                        // Mock MBTI Info View
-                        NavigationView {
-                            ScrollView {
-                                VStack(spacing: 20) {
-                                    Text("Coming Soon: Detailed compatibility guides for each MBTI type!")
-                                        .foregroundColor(.secondary)
-                                        .multilineTextAlignment(.center)
-                                        .padding()
-                                }
-                            }
-                            .navigationTitle("MBTI Guide")
-                            .navigationBarTitleDisplayMode(.inline)
-                        }
-                    }
+            mbtiBanner
 
-                    VStack(spacing: 0) {
-                        // ── Header ──
-                        HStack(spacing: 10) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.btTeal.opacity(0.15))
-                                    .frame(width: 40, height: 40)
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.btTeal)
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("AI Matchmaker")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                Text("Tell us who you want to meet")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                        }
+            VStack(spacing: 0) {
+                // ── Header ──
+                aiMatchmakerHeader
+                
+                Divider().opacity(0.4)
+                
+                // ── Text Input Area ──
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Describe your ideal partner freely")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
                         .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                        .padding(.bottom, 12)
-                        
-                        Divider().opacity(0.4)
-                        
-                        // ── Text Input Area ──
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Describe your ideal partner freely")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 16)
-                                .padding(.top, 12)
-                            
-                            ZStack(alignment: .topLeading) {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.systemGray6))
-                                    .frame(minHeight: 90)
-                                
-                                if query.isEmpty {
-                                    Text("e.g. I want to meet a 23-28 y/o non-smoker who loves working out...")
-                                        .font(.subheadline)
-                                        .foregroundColor(Color(.systemGray3))
-                                        .padding(.horizontal, 14)
-                                        .padding(.top, 12)
-                                }
-                                
-                                TextEditor(text: $query)
-                                    .font(.subheadline)
-                                    .scrollContentBackground(.hidden)
-                                    .background(Color.clear)
-                                    .frame(minHeight: 90)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .disabled(isPredicting)
-                            }
-                            .padding(.horizontal, 16)
-                            
-                            // ── AI Persona Suggestions ──
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "wand.and.stars")
-                                        .font(.caption)
-                                        .foregroundColor(.btTeal)
-                                    Text("Tailored for you")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.top, 4)
-                                
-                                if isLoadingPersonas {
-                                    // Shimmer loading placeholders
-                                    HStack(spacing: 8) {
-                                        ForEach(0..<3, id: \.self) { _ in
-                                            RoundedRectangle(cornerRadius: 14)
-                                                .fill(Color(.systemGray5).opacity(0.6))
-                                                .frame(width: 140, height: 80)
-                                                .shimmering()
-                                        }
-                                    }
-                                    .padding(.horizontal, 16)
-                                } else {
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 10) {
-                                            ForEach(Array(personaSuggestions.enumerated()), id: \.element.id) { index, persona in
-                                                Button(action: {
-                                                    withAnimation(.spring(response: 0.3)) {
-                                                        query = persona.fullQuery
-                                                    }
-                                                }) {
-                                                    VStack(alignment: .leading, spacing: 6) {
-                                                        HStack(spacing: 4) {
-                                                            Text(persona.emoji)
-                                                                .font(.system(size: 16))
-                                                            Text(persona.label)
-                                                                .font(.caption2)
-                                                                .fontWeight(.bold)
-                                                                .foregroundColor(.btTeal)
-                                                        }
-                                                        
-                                                        Text(typingDone[safe: index] == true ? persona.tagline : (typingTexts[safe: index] ?? ""))
-                                                            .font(.caption)
-                                                            .foregroundColor(.primary.opacity(0.8))
-                                                            .lineLimit(2)
-                                                            .multilineTextAlignment(.leading)
-                                                            .frame(minHeight: 32, alignment: .topLeading)
-                                                    }
-                                                    .padding(.horizontal, 12)
-                                                    .padding(.vertical, 10)
-                                                    .frame(width: 160, alignment: .leading)
-                                                    .background(
-                                                        RoundedRectangle(cornerRadius: 14)
-                                                            .fill(.ultraThinMaterial)
-                                                    )
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 14)
-                                                            .stroke(
-                                                                LinearGradient(
-                                                                    colors: [Color.btTeal.opacity(0.4), Color.purple.opacity(0.2), Color.btTeal.opacity(0.15)],
-                                                                    startPoint: .topLeading,
-                                                                    endPoint: .bottomTrailing
-                                                                ),
-                                                                lineWidth: 1.2
-                                                            )
-                                                    )
-                                                    .shadow(color: Color.btTeal.opacity(0.08), radius: 6, x: 0, y: 3)
-                                                }
-                                            }
-                                        }
-                                        .padding(.horizontal, 16)
-                                    }
-                                }
-                            }
-                            .padding(.bottom, 8)
-                            
-                            // ── Send Button ──
-                            HStack {
-                                Spacer()
-                                Button(action: {
-                                    Task { await fetchAiRecommendation() }
-                                }) {
-                                    HStack(spacing: 8) {
-                                        if isPredicting {
-                                            ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                .scaleEffect(0.85)
-                                            Text("AI is analyzing...")
-                                                .font(.subheadline.bold())
-                                        } else {
-                                            Image(systemName: "paperplane.fill")
-                                            Text("Start AI Matching")
-                                                .font(.subheadline.bold())
-                                            
-                                            // Coin Indicator
-                                            HStack(spacing: 2) {
-                                                Image(systemName: "bitcoinsign.circle.fill")
-                                                Text("2")
-                                            }
-                                            .font(.caption2.bold())
-                                            .foregroundColor(.yellow)
-                                            .padding(.leading, 4)
-                                        }
-                                    }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 12)
-                                    .background(query.isEmpty || isPredicting ? Color.gray.opacity(0.5) : Color.btTeal)
-                                    .clipShape(Capsule())
-                                    .shadow(color: Color.btTeal.opacity(query.isEmpty || isPredicting ? 0.001 : 0.35), radius: 8, x: 0, y: 4)
-                                }
-                                .disabled(query.isEmpty || isPredicting)
-                                .animation(.easeInOut(duration: 0.2), value: query.isEmpty)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 14)
-                        }
-                        
-                    }
-                    .background(Color(.systemBackground))
-                    .cornerRadius(20)
-                    .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
-                    .padding(.horizontal, 14)
+                        .padding(.top, 12)
                     
-                    Spacer()
+                    queryInputField
+                    
+                    // ── AI Persona Suggestions ──
+                    personaSuggestionsSection
+                    
+                    // ── Send Button ──
+                    sendButton
                 }
-                .padding(.vertical, 10)
-            .onAppear {
-                Task {
-                    await loadPersonaSuggestions()
-                    checkIfAlreadyCheckedIn()
-                }
+                
             }
-            .onChange(of: store.economy) { _ in
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 4)
+            .padding(.horizontal, 14)
+            
+            Spacer()
+        }
+        .padding(.vertical, 10)
+        .onAppear {
+            Task {
+                await loadPersonaSuggestions()
                 checkIfAlreadyCheckedIn()
             }
-            .fullScreenCover(isPresented: $showMatchesModal) {
-                AiMatchesModalView(
-                    matchedUsers: $matchedUsers,
-                    matchReasonsArray: $matchReasonsArray,
-                    showMatchesModal: $showMatchesModal,
-                    matchedByPreference: matchedByPreference,
-                    onAction: { actionStr, user in
-                        handleCardAction(action: actionStr, matchedUser: user)
-                    }
-                )
-            }
-            .alert("Not Enough Coins", isPresented: $showCoinAlert) {
-                Button("Got It", role: .cancel) {}
-            } message: {
-                Text("AI Matchmaking costs 2 Coins. Tap the coin icon on the top right to get more!")
-            }
+        }
+        .onChange(of: store.economy) { _ in
+            checkIfAlreadyCheckedIn()
+        }
+        .fullScreenCover(isPresented: $showMatchesModal) {
+            AiMatchesModalView(
+                matchedUsers: $matchedUsers,
+                matchReasonsArray: $matchReasonsArray,
+                showMatchesModal: $showMatchesModal,
+                matchedByPreference: matchedByPreference,
+                onAction: { actionStr, user in
+                    handleCardAction(action: actionStr, matchedUser: user)
+                }
+            )
+        }
+        .alert("Not Enough Coins", isPresented: $showCoinAlert) {
+            Button("Got It", role: .cancel) {}
+        } message: {
+            Text("AI Matchmaking costs 2 Coins. Tap the coin icon on the top right to get more!")
+        }
     }
+    
+    // MARK: - Banner Subviews
+    
+    private var attendanceBanner: some View {
+        Button(action: {
+            if !alreadyCheckedIn {
+                Task {
+                    let result = await store.checkDailyAttendance()
+                    checkInMessage = result.message
+                    alreadyCheckedIn = true
+                }
+            }
+        }) {
+            HStack {
+                Image(systemName: alreadyCheckedIn ? "checkmark.circle.fill" : "gift.fill")
+                    .foregroundColor(alreadyCheckedIn ? .green : .yellow)
+                Text(alreadyCheckedIn ? "Checked In Today" : "Tap here for Daily Check-in!")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.white)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(alreadyCheckedIn ? Color.black.opacity(0.8) : Color.btTeal)
+            .cornerRadius(12)
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 10)
+    }
+    
+    private var premiumBanner: some View {
+        Button(action: { showStoreSheet = true }) {
+            HStack(spacing: 12) {
+                Image(systemName: "crown.fill")
+                    .foregroundColor(.yellow)
+                    .font(.system(size: 20))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Join Premium Subscription")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("Unlock exclusive perks & get more coins")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(
+                LinearGradient(gradient: Gradient(colors: [Color.purple, Color.indigo]), startPoint: .leading, endPoint: .trailing)
+            )
+            .cornerRadius(12)
+        }
+        .padding(.horizontal, 14)
+        .sheet(isPresented: $showStoreSheet) {
+            StoreView()
+        }
+    }
+    
+    private var mbtiBanner: some View {
+        Button(action: { showMBTIModal = true }) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MBTI Compatibility Guide")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.black)
+                    Text("Tap to find your perfect match type")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(
+                LinearGradient(gradient: Gradient(colors: [Color.pink.opacity(0.15), Color.purple.opacity(0.1)]), startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            .cornerRadius(12)
+        }
+        .padding(.horizontal, 14)
+        .sheet(isPresented: $showMBTIModal) {
+            NavigationView {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        Text("Coming Soon: Detailed compatibility guides for each MBTI type!")
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                    }
+                }
+                .navigationTitle("MBTI Guide")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+    }
+    
+    // MARK: - AI Matchmaker Subviews
+    
+    private var aiMatchmakerHeader: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color.btTeal.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.btTeal)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("AI Matchmaker")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Text("Tell us who you want to meet")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+    }
+    
+    private var queryInputField: some View {
+        ZStack(alignment: .topLeading) {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemGray6))
+                .frame(minHeight: 90)
+            
+            if query.isEmpty {
+                Text("e.g. I want to meet a 23-28 y/o non-smoker who loves working out...")
+                    .font(.subheadline)
+                    .foregroundColor(Color(.systemGray3))
+                    .padding(.horizontal, 14)
+                    .padding(.top, 12)
+            }
+            
+            TextEditor(text: $query)
+                .font(.subheadline)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+                .frame(minHeight: 90)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .disabled(isPredicting)
+        }
+        .padding(.horizontal, 16)
+    }
+    
+    private var personaSuggestionsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "wand.and.stars")
+                    .font(.caption)
+                    .foregroundColor(.btTeal)
+                Text("Tailored for you")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            
+            if isLoadingPersonas {
+                HStack(spacing: 8) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color(.systemGray5).opacity(0.6))
+                            .frame(width: 140, height: 80)
+                            .shimmering()
+                    }
+                }
+                .padding(.horizontal, 16)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(Array(personaSuggestions.enumerated()), id: \.element.id) { index, persona in
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3)) {
+                                    query = persona.fullQuery
+                                }
+                            }) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 4) {
+                                        Text(persona.emoji)
+                                            .font(.system(size: 16))
+                                        Text(persona.label)
+                                            .font(.caption2)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.btTeal)
+                                    }
+                                    
+                                    Text(typingDone[safe: index] == true ? persona.tagline : (typingTexts[safe: index] ?? ""))
+                                        .font(.caption)
+                                        .foregroundColor(.primary.opacity(0.8))
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                        .frame(minHeight: 32, alignment: .topLeading)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .frame(width: 160, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(.ultraThinMaterial)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [Color.btTeal.opacity(0.4), Color.purple.opacity(0.2), Color.btTeal.opacity(0.15)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1.2
+                                        )
+                                )
+                                .shadow(color: Color.btTeal.opacity(0.08), radius: 6, x: 0, y: 3)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
+        }
+        .padding(.bottom, 8)
+    }
+    
+    private var sendButton: some View {
+        HStack {
+            Spacer()
+            Button(action: {
+                Task { await fetchAiRecommendation() }
+            }) {
+                HStack(spacing: 8) {
+                    if isPredicting {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.85)
+                        Text("AI is analyzing...")
+                            .font(.subheadline.bold())
+                    } else {
+                        Image(systemName: "paperplane.fill")
+                        Text("Start AI Matching")
+                            .font(.subheadline.bold())
+                        
+                        HStack(spacing: 2) {
+                            Image(systemName: "bitcoinsign.circle.fill")
+                            Text("2")
+                        }
+                        .font(.caption2.bold())
+                        .foregroundColor(.yellow)
+                        .padding(.leading, 4)
+                    }
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(query.isEmpty || isPredicting ? Color.gray.opacity(0.5) : Color.btTeal)
+                .clipShape(Capsule())
+                .shadow(color: Color.btTeal.opacity(query.isEmpty || isPredicting ? 0.001 : 0.35), radius: 8, x: 0, y: 4)
+            }
+            .disabled(query.isEmpty || isPredicting)
+            .animation(.easeInOut(duration: 0.2), value: query.isEmpty)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 14)
+    }
+    
+    // MARK: - Logic
     
     private func checkIfAlreadyCheckedIn() {
         if let lastDate = store.economy?.lastAttendanceDate,
@@ -334,7 +396,6 @@ struct AiChatInterfaceView: View {
                 if let targetId = matchedUser.supabaseId {
                     let isMatch = try await InteractionManager.shared.handleUserAction(targetUserId: targetId, actionType: action)
                     if isMatch {
-                        // Show match popup for the current user (caller side)
                         let matchInfo = MatchedUserInfo(
                             userId: targetId,
                             name: matchedUser.name,
@@ -346,7 +407,6 @@ struct AiChatInterfaceView: View {
                     }
                 }
                 
-                // Dismiss card smoothly after recording interaction
                 await MainActor.run {
                     if let idx = matchedUsers.firstIndex(where: { $0.id == matchedUser.id }) {
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -364,14 +424,10 @@ struct AiChatInterfaceView: View {
         }
     }
     
-    @State private var showCoinAlert = false
-
     private func fetchAiRecommendation() async {
         let success = await StoreManager.shared.spendCoins(amount: 2)
         if !success {
-            await MainActor.run {
-                showCoinAlert = true
-            }
+            await MainActor.run { showCoinAlert = true }
             return
         }
         
@@ -379,185 +435,17 @@ struct AiChatInterfaceView: View {
         defer { isPredicting = false }
         
         do {
-            // Fetch a fresh, auto-refreshed token
-            guard let token = await AuthManager.shared.fetchCurrentAccessToken() else {
-                print("AI Error: No session token available")
-                return
-            }
+            let result = try await AiRecommendationService.shared.fetchRecommendation(query: query)
             
-            // Extract user ID from JWT payload (sub claim) — avoids a second async auth call
-            guard let currentUserId = Self.extractSubFromJWT(token) else {
-                print("AI Error: Could not extract user ID from JWT")
-                return
-            }
-            
-            guard let url = URL(string: "\(Config.supabaseURL.absoluteString)/functions/v1/ai-recommendation") else { return }
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONSerialization.data(withJSONObject: ["query": query, "userId": currentUserId])
-            request.timeoutInterval = 60
-            
-            let config = URLSessionConfiguration.ephemeral
-            let session = URLSession(configuration: config)
-            let (data, response) = try await session.data(for: request)
-            
-            // Print the full response body so we can see the exact error
-            let bodyStr = String(data: data, encoding: .utf8) ?? "non-utf8"
-            
-            guard let http = response as? HTTPURLResponse else { return }
-            print("AI Edge Function status: \(http.statusCode), body: \(bodyStr)")
-            guard http.statusCode == 200 else { return }
-            
-            struct AiResponse: Decodable {
-                let candidates: [CandidateContainer]
-                let matchedByPreference: Bool?
-            }
-            struct CandidateContainer: Decodable {
-                let candidate: UserProfileResponse
-                let reasons: Reasons
-                let distance: Int?
-                let confidenceTier: String?
-                let compositeScore: Double?
-                let topDimensions: [String]?
-            }
-            // Flexible decoder: answers can be a dict OR an array of dicts
-            enum FlexibleAnswers: Decodable {
-                case dict([String: String])
-                case array([[String: String]])
-                
-                init(from decoder: Decoder) throws {
-                    let container = try decoder.singleValueContainer()
-                    if let dict = try? container.decode([String: String].self) {
-                        self = .dict(dict)
-                    } else if let arr = try? container.decode([[String: String]].self) {
-                        self = .array(arr)
-                    } else {
-                        self = .dict([:])
-                    }
-                }
-                
-                func toDictionary() -> [String: String] {
-                    switch self {
-                    case .dict(let d): return d
-                    case .array(let arr):
-                        var result: [String: String] = [:]
-                        for entry in arr {
-                            if let q = entry["question"], let a = entry["answer"] {
-                                result[q] = a
-                            }
-                        }
-                        return result
-                    }
-                }
-            }
-            struct UserProfileResponse: Decodable {
-                let id: String
-                let full_name: String?
-                let nickname: String?
-                let birth_date: String?
-                let occupation: String?
-                let height: String?
-                let mbti: String?
-                let one_line_intro: String?
-                let self_intro: String?
-                let lifestyle: [String: String]?
-                let answers: FlexibleAnswers?
-            }
-            struct Reasons: Decodable {
-                let step1: String
-                let step2: String
-                let step3: String
-                let step4: String
-            }
-            
-            let result = try JSONDecoder().decode(AiResponse.self, from: data)
-            
-            var newMatchedUsers: [User] = []
-            var newMatchReasonsArray: [[String]] = []
-            
-            for item in result.candidates {
-                var fetchedImageName = "profile_korean_1"
-                var allImageNames: [String] = []
-                if let userPhotos = try? await AuthManager.shared.fetchUserPhotos(userId: item.candidate.id) {
-                    if let firstPhoto = userPhotos.first {
-                        fetchedImageName = firstPhoto.image_url
-                    }
-                    allImageNames = userPhotos.compactMap { $0.image_url }
-                }
-                
-                // Calculate age from birth_date (YYYY-MM...)
-                let birthYearString = String((item.candidate.birth_date ?? "").prefix(4))
-                let birthYear = Int(birthYearString) ?? 2000
-                let currentYear = Calendar.current.component(.year, from: Date())
-                let calculatedAge = currentYear - birthYear
-
-                // Use enriched data from the edge function response (no extra DB call needed)
-                let userMBTI = item.candidate.mbti ?? "N/A"
-                let userLifestyle = item.candidate.lifestyle ?? [:]
-                // Convert answers (handles both dict and array formats)
-                let userQA = item.candidate.answers?.toDictionary() ?? [:]
-
-                var newUser = User(
-                    supabaseId: item.candidate.id,
-                    name: item.candidate.full_name ?? item.candidate.nickname ?? "Unknown",
-                    age: calculatedAge,
-                    region: "Online",
-                    distance: item.distance ?? 0,
-                    mbti: userMBTI,
-                    isOnline: true,
-                    isVerified: true,
-                    imageName: fetchedImageName,
-                    job: item.candidate.occupation ?? "Not specified",
-                    height: Int(item.candidate.height ?? "0") ?? 0,
-                    university: "",
-                    drinking: "",
-                    smoking: "",
-                    oneLineIntro: item.candidate.one_line_intro ?? "AI Match Selected",
-                    selfIntro: item.candidate.self_intro ?? "Recommended by AI Matchmaker.",
-                    imageNames: allImageNames
-                )
-                newUser.lifestyle = userLifestyle
-                newUser.personalQA = userQA.isEmpty ? nil : userQA
-                newUser.confidenceTier = item.confidenceTier
-                newUser.compositeScore = item.compositeScore
-                newUser.topDimensions = item.topDimensions
-                
-                newMatchedUsers.append(newUser)
-                newMatchReasonsArray.append([
-                    item.reasons.step1,
-                    item.reasons.step2,
-                    item.reasons.step3,
-                    item.reasons.step4
-                ])
-            }
-
             await MainActor.run {
-                self.matchedUsers = newMatchedUsers
-                self.matchReasonsArray = newMatchReasonsArray
-                self.matchedByPreference = result.matchedByPreference ?? true
+                self.matchedUsers = result.users
+                self.matchReasonsArray = result.reasonsArray
+                self.matchedByPreference = result.matchedByPreference
                 self.showMatchesModal = true
             }
-            
         } catch {
             print("Failed to fetch recommendation: \(error)")
         }
-    }
-    /// Decodes the base64url JWT payload and returns the `sub` (user ID) claim.
-    static func extractSubFromJWT(_ jwt: String) -> String? {
-        let parts = jwt.components(separatedBy: ".")
-        guard parts.count == 3 else { return nil }
-        var base64 = parts[1]
-            .replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-        let remainder = base64.count % 4
-        if remainder != 0 { base64 += String(repeating: "=", count: 4 - remainder) }
-        guard let data = Data(base64Encoded: base64),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let sub = json["sub"] as? String else { return nil }
-        return sub
     }
     
     // MARK: - Persona Suggestions
@@ -572,7 +460,6 @@ struct AiChatInterfaceView: View {
         do {
             let client = AuthManager.shared.client
             
-            // Fetch profile data
             struct ProfileResult: Decodable {
                 let occupation: String?
                 let gender: String?
@@ -584,7 +471,6 @@ struct AiChatInterfaceView: View {
                 .execute()
                 .value) ?? []
             
-            // Fetch user traits
             struct TraitResult: Decodable {
                 let mbti: String?
                 let lifestyle: [String: String]?
@@ -614,7 +500,6 @@ struct AiChatInterfaceView: View {
                 self.typingDone = Array(repeating: false, count: suggestions.count)
             }
             
-            // Start typewriter animation
             for i in 0..<suggestions.count {
                 await startTypingAnimation(index: i, text: suggestions[i].tagline)
             }
@@ -630,7 +515,6 @@ struct AiChatInterfaceView: View {
     ) -> [PersonaSuggestion] {
         var suggestions: [PersonaSuggestion] = []
         
-        // MBTI best match partner type map
         let mbtiIdealPartners: [String: (type: String, desc: String)] = [
             "INTJ": ("ENFP", "creative and spontaneous"),
             "INTP": ("ENTJ", "decisive and driven"),
@@ -650,7 +534,6 @@ struct AiChatInterfaceView: View {
             "ESFP": ("ISTJ", "steady and dependable")
         ]
         
-        // ── Suggestion 1: MBTI-based ideal partner ──
         let mbtiType = mbti ?? "ENFP"
         let idealPartner = mbtiIdealPartners[mbtiType] ?? ("ENFP", "creative and spontaneous")
         
@@ -668,7 +551,6 @@ struct AiChatInterfaceView: View {
             tagline: mbtiTemplates.randomElement()!
         ))
         
-        // ── Suggestion 2: Lifestyle-based ──
         let drink = lifestyle?["Drinking"] ?? lifestyle?["drinking"] ?? "Socially"
         let smoke = lifestyle?["Smoking"] ?? lifestyle?["smoking"] ?? "Non-smoker"
         let workout = lifestyle?["Workout"] ?? lifestyle?["workout"]
@@ -706,7 +588,6 @@ struct AiChatInterfaceView: View {
             tagline: lifestyleTemplates.randomElement()!
         ))
         
-        // ── Suggestion 3: Creative / Occupation-based ──
         let occ = occupation ?? "professional"
         let prefGender = preferences?["preferred_gender"]?.value as? String
         
@@ -732,7 +613,7 @@ struct AiChatInterfaceView: View {
     private func startTypingAnimation(index: Int, text: String) async {
         let chars = Array(text)
         for i in 0..<chars.count {
-            try? await Task.sleep(nanoseconds: 30_000_000) // 30ms per char
+            try? await Task.sleep(nanoseconds: 30_000_000)
             await MainActor.run {
                 if index < typingTexts.count {
                     typingTexts[index] = String(chars[0...i])
@@ -745,7 +626,6 @@ struct AiChatInterfaceView: View {
             }
         }
     }
-
 }
 
 // MARK: - Safe Array Subscript
@@ -785,79 +665,5 @@ struct ShimmerModifier: ViewModifier {
 extension View {
     func shimmering() -> some View {
         modifier(ShimmerModifier())
-    }
-}
-
-// MARK: - AI Matches Modal View
-struct AiMatchesModalView: View {
-    @Binding var matchedUsers: [User]
-    @Binding var matchReasonsArray: [[String]]
-    @Binding var showMatchesModal: Bool
-    let matchedByPreference: Bool
-    let onAction: (String, User) -> Void
-    
-    var body: some View {
-        ZStack {
-            Color.btIvory.edgesIgnoringSafeArea(.all)
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Header with close button
-                    HStack {
-                        Text("AI Recommendations (\(matchedUsers.count))")
-                            .font(.headline)
-                            .padding(.horizontal, 16)
-                        Spacer()
-                        Button(action: { showMatchesModal = false }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(.gray.opacity(0.7))
-                        }
-                        .padding(.horizontal, 16)
-                    }
-                    .padding(.top, 20)
-                    
-                    if matchedByPreference {
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .foregroundColor(.green)
-                            Text("We found perfect matches based on your preferences! ✨")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                        .background(Color.green.opacity(0.08))
-                        .cornerRadius(8)
-                        .padding(.horizontal, 14)
-                    } else {
-                        HStack(spacing: 6) {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundColor(.orange)
-                            Text("It seems your perfect match is away, so we slightly broadened your criteria to find someone you might click with!")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                        .background(Color.orange.opacity(0.08))
-                        .cornerRadius(8)
-                        .padding(.horizontal, 14)
-                    }
-                    
-                    if let firstUser = matchedUsers.first, let firstReason = matchReasonsArray.first {
-                        PhotoCardView(user: firstUser, effect: .aiReveal(reasons: firstReason)) { actionStr in
-                            onAction(actionStr, firstUser)
-                        }
-                        .padding(.horizontal, 14)
-                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
-                        .id(firstUser.id) // Ensure transition happens when ID changes
-                    }
-                    
-                    Spacer()
-                }
-                .padding(.bottom, 30)
-            }
-        }
     }
 }

@@ -610,6 +610,50 @@ AI 추천 엔진의 정확도와 자연어 인식 능력을 극대화하기 위�
 
 ---
 
+### Phase 19 — Codebase Modularity & Optimization
+
+대대적인 코드베이스 리팩토링을 통해 앱의 모듈화 수준을 높이고 유지보수성을 극대화했습니다. 특히 비대해진 "God Views"를 기능별로 분할하고 공통 컴포넌트를 추출했습니다.
+
+#### 구성 요소
+
+**1. `ExploreView` 모듈화 (Explore/ 폴더 신설)**
+- 기존 약 800줄에 달하던 `ExploreView`를 270여 줄로 대폭 축소.
+- 내부에 하드코딩되어 있던 복잡한 서브뷰 5종을 개별 파일로 분리:
+  - `PendingLikeCardView.swift`
+  - `MatchCardView.swift`
+  - `AddFriendSheet.swift`
+  - `FriendRowView.swift`
+  - `FriendProfileCardView.swift`
+
+**2. `AiChatInterfaceView` 서비스 로직 분리 (Services/ 폴더)**
+- 기존 900줄이 넘던 뷰를 540여 줄로 경량화.
+- JWT 파싱, 네트워킹, JSON 디코딩 등 무거운 API 통신 로직을 전담하는 `AiRecommendationService.swift` 신설.
+- 매칭 모달 UI를 `AiMatchesModalView.swift`로 분리하여 코드 가독성 향상.
+- 다른 뷰 및 매니저 객체들(`InteractionManager`, `ChatRoomView`, `ChatManager` 등)에서 JWT 파싱 시 새로운 서비스의 메서드를 호출하도록 참조 업데이트.
+
+**3. 매칭 프리퍼런스 (Matching Preferences) 폼 통합 (Components/ 폴더)**
+- 온보딩 뷰(`MatchingPreferenceView.swift`)와 설정 뷰(`MatchingPreferenceEditView.swift`) 간의 극심한 코드 중복 해소.
+- `MatchingPreferenceForm.swift` 공유 컴포넌트를 `Components/` 내에 생성하여 위치, 거리, 성별, 나이, 라이프스타일 필터 렌더링 로직을 일원화.
+- 두 뷰 모두 해당 폼을 호출하는 형태로 리팩토링하여 향후 항목 추가/수정 시 단일 파일만 변경하면 되도록 구조 개선.
+
+#### 변경 파일 목록
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `ExploreView.swift` | [MODIFY] 서브뷰 분리, 코드 축소 |
+| `AiChatInterfaceView.swift` | [MODIFY] 네트워크/디코딩 로직 분리, 서브뷰 분리 |
+| `MatchingPreferenceView.swift` | [MODIFY] `MatchingPreferenceForm` 적용으로 중복 코드 제거 |
+| `MatchingPreferenceEditView.swift` | [MODIFY] `MatchingPreferenceForm` 적용으로 중복 코드 제거 |
+| `AiRecommendationService.swift` | [NEW] AI 통신 전담 서비스 클래스 |
+| `AiMatchesModalView.swift` | [NEW] AI 매칭 모달 컴포넌트 |
+| `MatchingPreferenceForm.swift` | [NEW] 매칭 프리퍼런스 공유 입력 폼 컴포넌트 |
+| `PendingLikeCardView.swift` | [NEW] 나를 좋아요 한 유저 표시 카드 |
+| `MatchCardView.swift` | [NEW] 매칭된 유저 표시 카드 |
+| `FriendRowView.swift` | [NEW] 친구 목록 리스트 아이템 |
+| `InteractionManager.swift` | [MODIFY] JWT 추출 메서드 참조 변경 |
+| `ChatManager.swift` | [MODIFY] JWT 추출 메서드 참조 변경 |
+
+---
 ## Future Features
 
 ### Apple Sign-In Integration (Postponed)

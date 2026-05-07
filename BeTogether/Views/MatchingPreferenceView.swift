@@ -43,83 +43,15 @@ struct MatchingPreferenceView: View {
                     ScrollView {
                         VStack(spacing: 30) {
                             
-                            // Location (Detected)
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Location")
-                                    .font(.headline)
-                                    .foregroundColor(.gray)
-                                
-                                HStack {
-                                    Image(systemName: "location.fill")
-                                        .foregroundColor(.btTeal)
-                                    Text(locationText.isEmpty ? "Detecting..." : locationText)
-                                        .font(.subheadline)
-                                        .foregroundColor(.black)
-                                    Spacer()
-                                    Image(systemName: "location.circle")
-                                        .foregroundColor(.btTeal)
-                                        .font(.caption)
-                                }
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                )
-                            }
-                            
-                            // Distance
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text("Max Distance")
-                                        .font(.headline)
-                                        .foregroundColor(.gray)
-                                    Spacer()
-                                    Text("\(Int(maxDistance))km")
-                                        .font(.subheadline)
-                                        .foregroundColor(.btTeal)
-                                }
-                                
-                                Slider(value: $maxDistance, in: 1...100, step: 1)
-                                    .accentColor(.btTeal)
-                            }
-                            
-                            // Gender Preference
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Preferred Gender")
-                                    .font(.headline)
-                                    .foregroundColor(.gray)
-                                
-                                HStack(spacing: 10) {
-                                    ForEach(genderOptions, id: \.self) { option in
-                                        BTToggleButton(title: option, selection: $preferredGender)
-                                    }
-                                }
-                            }
-                            
-                            // Age Range
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text("Age Range")
-                                        .font(.headline)
-                                        .foregroundColor(.gray)
-                                    Spacer()
-                                    Text("Up to \(Int(maxAge))")
-                                        .font(.subheadline)
-                                        .foregroundColor(.btTeal)
-                                }
-                                
-                                Slider(value: $maxAge, in: 19...50, step: 1)
-                                    .accentColor(.btTeal)
-                            }
-                            
-                            // Filters - Drinking
-                            filterSection(title: "Drinking Habit", options: drinkingOptions, selected: $selectedDrinkingFilters)
-                            
-                            // Filters - Smoking
-                            filterSection(title: "Smoking Habit", options: smokingOptions, selected: $selectedSmokingFilters)
-                            
+                            MatchingPreferenceForm(
+                                locationText: $locationText,
+                                preferredGender: $preferredGender,
+                                maxAge: $maxAge,
+                                maxDistance: $maxDistance,
+                                selectedDrinkingFilters: $selectedDrinkingFilters,
+                                selectedSmokingFilters: $selectedSmokingFilters,
+                                onDetectLocation: nil
+                            )                            
 
                             
                             Spacer(minLength: 40)
@@ -147,39 +79,6 @@ struct MatchingPreferenceView: View {
         }
     }
     
-    // MARK: - Filter Section Helper
-    private func filterSection(title: String, options: [String], selected: Binding<Set<String>>) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
-                .foregroundColor(.gray)
-            
-            FlowLayout(spacing: 10) {
-                ForEach(options, id: \.self) { option in
-                    let isSelected = selected.wrappedValue.contains(option)
-                    Text(option)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(isSelected ? Color.btTeal : Color.white)
-                        .foregroundColor(isSelected ? .white : .btTeal)
-                        .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.btTeal, lineWidth: 1)
-                        )
-                        .onTapGesture {
-                            if isSelected {
-                                selected.wrappedValue.remove(option)
-                            } else {
-                                selected.wrappedValue = [option]
-                            }
-                        }
-                }
-            }
-        }
-    }
     
     // MARK: - Prefill from LifestyleOptionsView selections
     private func prefillFromSession() {

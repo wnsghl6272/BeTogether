@@ -31,7 +31,7 @@ class InteractionManager {
     /// Fetches all matched users for the current authenticated user
     func fetchMatches() async throws -> [User] {
         guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
-              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token),
+              let currentUserId = await AiRecommendationService.extractSubFromJWT(token),
               let _ = UUID(uuidString: currentUserId) else {
             throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
@@ -298,7 +298,7 @@ class InteractionManager {
     /// Remove friend: delete friendship record + remove self from conversation (partner keeps chat)
     func removeFriend(targetUserId: String) async throws {
         guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
-              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token) else {
+              let currentUserId = await AiRecommendationService.extractSubFromJWT(token) else {
             throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
         let client = AuthManager.shared.client
@@ -334,7 +334,7 @@ class InteractionManager {
     func fetchDailyPicks() async throws -> [(user: User, isUnlocked: Bool)] {
         let client = AuthManager.shared.client
         guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
-              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token) else {
+              let currentUserId = await AiRecommendationService.extractSubFromJWT(token) else {
             throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
         
@@ -438,7 +438,7 @@ class InteractionManager {
     func unlockDailyPick(targetUserId: String) async throws -> Bool {
         let client = AuthManager.shared.client
         guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
-              let currentUserId = await AiChatInterfaceView.extractSubFromJWT(token) else {
+              let currentUserId = await AiRecommendationService.extractSubFromJWT(token) else {
             throw NSError(domain: "InteractionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
         

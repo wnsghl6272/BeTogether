@@ -27,77 +27,17 @@ struct MatchingPreferenceEditView: View {
             ScrollView {
                 VStack(spacing: 28) {
                     
-                    // Location (Detected)
-                    VStack(alignment: .leading, spacing: 10) {
-                        sectionHeader("Location")
-                        
-                        HStack {
-                            Image(systemName: "location.fill")
-                                .foregroundColor(.btTeal)
-                            Text(locationText.isEmpty ? "Detecting..." : locationText)
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Button(action: { detectLocation() }) {
-                                Image(systemName: "arrow.clockwise")
-                                    .foregroundColor(.btTeal)
-                                    .font(.caption)
-                            }
+                    MatchingPreferenceForm(
+                        locationText: $locationText,
+                        preferredGender: $preferredGender,
+                        maxAge: $maxAge,
+                        maxDistance: $maxDistance,
+                        selectedDrinkingFilters: $selectedDrinkingFilters,
+                        selectedSmokingFilters: $selectedSmokingFilters,
+                        onDetectLocation: {
+                            detectLocation()
                         }
-                        .padding()
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                    }
-                    
-                    // Gender Preference
-                    VStack(alignment: .leading, spacing: 10) {
-                        sectionHeader("Preferred Gender")
-                        
-                        HStack(spacing: 10) {
-                            ForEach(genderOptions, id: \.self) { option in
-                                genderPill(option)
-                            }
-                        }
-                    }
-                    
-                    // Age Range
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            sectionHeader("Age Range")
-                            Spacer()
-                            Text("Up to \(Int(maxAge))")
-                                .font(.subheadline.bold())
-                                .foregroundColor(.btTeal)
-                        }
-                        
-                        Slider(value: $maxAge, in: 19...50, step: 1)
-                            .accentColor(.btTeal)
-                    }
-                    
-                    // Distance
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            sectionHeader("Max Distance")
-                            Spacer()
-                            Text("\(Int(maxDistance))km")
-                                .font(.subheadline.bold())
-                                .foregroundColor(.btTeal)
-                        }
-                        
-                        Slider(value: $maxDistance, in: 1...100, step: 1)
-                            .accentColor(.btTeal)
-                    }
-                    
-                    // Filters - Drinking
-                    filterSection(title: "Drinking Habit", options: drinkingOptions, selected: $selectedDrinkingFilters)
-                    
-                    // Filters - Smoking
-                    filterSection(title: "Smoking Habit", options: smokingOptions, selected: $selectedSmokingFilters)
-                    
+                    )                    
 
                 }
                 .padding()
@@ -142,58 +82,7 @@ struct MatchingPreferenceEditView: View {
     
     // MARK: - Helpers
     
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.headline)
-            .foregroundColor(.primary)
-    }
     
-    private func genderPill(_ title: String) -> some View {
-        Button(action: { preferredGender = title }) {
-            Text(title)
-                .font(.caption.bold())
-                .foregroundColor(preferredGender == title ? .white : .btTeal)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(preferredGender == title ? Color.btTeal : Color(.systemBackground))
-                .cornerRadius(10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.btTeal, lineWidth: 1)
-                )
-        }
-    }
-    
-    private func filterSection(title: String, options: [String], selected: Binding<Set<String>>) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title)
-            
-            FlowLayout(spacing: 10) {
-                ForEach(options, id: \.self) { option in
-                    let isSelected = selected.wrappedValue.contains(option)
-                    Text(option)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(isSelected ? Color.btTeal : Color(.systemBackground))
-                        .foregroundColor(isSelected ? .white : .btTeal)
-                        .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.btTeal, lineWidth: 1)
-                        )
-                        .onTapGesture {
-                            if isSelected {
-                                selected.wrappedValue.remove(option)
-                            } else {
-                                selected.wrappedValue = [option]
-                            }
-                        }
-                }
-            }
-        }
-    }
     
     // MARK: - Location
     private func detectLocation() {

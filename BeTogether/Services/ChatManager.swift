@@ -167,7 +167,7 @@ class ChatManager: ObservableObject {
     /// Load existing messages for a conversation
     func loadMessages(conversationId: String) async {
         guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
-              let currentUserId = AiChatInterfaceView.extractSubFromJWT(token) else {
+              let currentUserId = AiRecommendationService.extractSubFromJWT(token) else {
             return
         }
         
@@ -195,7 +195,7 @@ class ChatManager: ObservableObject {
     func sendMessage(to partnerId: String, content: String, conversationId: String) async {
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard let token = await AuthManager.shared.fetchCurrentAccessToken(),
-              let currentUserId = AiChatInterfaceView.extractSubFromJWT(token) else {
+              let currentUserId = AiRecommendationService.extractSubFromJWT(token) else {
             return
         }
         
